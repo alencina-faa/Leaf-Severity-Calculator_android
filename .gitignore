@@ -48,6 +48,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+beeware-venv/
 
 # IntelliJ Idea family of suites
 .idea
