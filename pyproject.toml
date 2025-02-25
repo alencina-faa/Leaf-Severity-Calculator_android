@@ -1,11 +1,11 @@
 # This project was generated with 0.3.20 using template: https://github.com/beeware/briefcase-template@v0.3.20
 [tool.briefcase]
-project_name = "Tesis doctoral"
+project_name = "Leaf Severity Calculator"
 bundle = "com.example"
 version = "0.0.1"
 url = "https://example.com/app"
 license.file = "LICENSE"
-author = "edavid, alencina & IAs"
+author = "edavid, alencina-faa & IAs"
 author_email = "edavid@azul.faa.unicen.edu.ar"
 requires = [
     "toga",
@@ -15,9 +15,9 @@ requires = [
 ]
 
 [tool.briefcase.app.app]
-formal_name = "Leaf Barley Calculator"
-description = "My first application"
-long_description = """More details about the app should go here.
+formal_name = "Leaf Barley Severity Calculator"
+description = "This app imports an image of diseased leaves sticked on white paper and calculates the severity of the diseases."
+long_description = """More details about the app comming soon.
 """
 sources = [
     "src/app",
