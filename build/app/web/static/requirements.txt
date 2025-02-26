@@ -1,6 +1,0 @@
-# Generated 2025-02-26 00:42:57.637197
-toga
-opencv-python
-numpy
-Pillow
-toga-web~=0.4.7
