@@ -1,0 +1,18 @@
+plugins = [
+    "!error",
+]
+packages = [
+    "/static/wheels/app-0.0.1-py3-none-any.whl",
+    "/static/wheels/cffi-1.17.1-cp312-cp312-win_amd64.whl",
+    "/static/wheels/clr_loader-0.2.7.post0-py3-none-any.whl",
+    "/static/wheels/numpy-2.2.3-cp312-cp312-win_amd64.whl",
+    "/static/wheels/opencv_python-4.11.0.86-cp37-abi3-win_amd64.whl",
+    "/static/wheels/pillow-11.1.0-cp312-cp312-win_amd64.whl",
+    "/static/wheels/pycparser-2.22-py3-none-any.whl",
+    "/static/wheels/pythonnet-3.0.5-py3-none-any.whl",
+    "/static/wheels/toga-0.4.9-py3-none-any.whl",
+    "/static/wheels/toga_core-0.4.9-py3-none-any.whl",
+    "/static/wheels/toga_web-0.4.9-py3-none-any.whl",
+    "/static/wheels/toga_winforms-0.4.9-py3-none-any.whl",
+    "/static/wheels/travertino-0.3.0-py3-none-any.whl",
+]
