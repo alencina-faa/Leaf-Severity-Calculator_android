@@ -51,10 +51,11 @@ class LeafSeverityCalculator(toga.App):
     
     async def cargar_imagen(self, widget):
         try:
-            file_dialog_result = await self.main_window.open_file_dialog(
+            file_dialog_result = await self.main_window.dialog(toga.OpenFileDialog(
                 title="Seleccionar una imagen",
-                multiselect=False,
+                multiple_select=False,
                 file_types=['jpg', 'png']
+            )
             )
             if file_dialog_result:
                 file_path = file_dialog_result[0] if isinstance(file_dialog_result, (list, tuple)) else file_dialog_result
@@ -73,7 +74,7 @@ class LeafSeverityCalculator(toga.App):
                 print("No se seleccionó ningún archivo")
         except Exception as e:
             print(f"Error al cargar la imagen: {e}")
-            await self.main_window.info_dialog('Error', str(e))
+            await self.main_window.dialog(toga.InfoDialog('Error', str(e)))
 
     def mostrar_imagen(self, img, img_view):
         try:
@@ -84,10 +85,10 @@ class LeafSeverityCalculator(toga.App):
                 pil_image.save(buffer, format="PNG")
                 img_data = buffer.getvalue()
             
-            img_view.image = toga.Image(data=img_data)
+            img_view.image = toga.Image(src=img_data)
         except Exception as e:
             print(f"Error al mostrar la imagen: {e}")
-            self.main_window.info_dialog('Error al mostrar imagen', str(e))
+            self.main_window.dialog(toga.InfoDialog('Error al mostrar imagen', str(e)))
 
     def calcular_indice(self):
         try:
@@ -100,7 +101,7 @@ class LeafSeverityCalculator(toga.App):
             )
         except Exception as e:
             print(f"Error al calcular el índice de enfermedad: {e}")
-            self.main_window.info_dialog('Error al calcular índice', str(e))
+            self.main_window.dialog(toga.InfoDialog('Error al calcular índice', str(e)))
     
     def procesar_imagen(self):
         try:
@@ -125,7 +126,7 @@ class LeafSeverityCalculator(toga.App):
                 self.mostrar_imagen(img_resultado, self.img_view_procesada)
         except Exception as e:
             print(f"Error al procesar la imagen: {e}")
-            self.main_window.info_dialog('Error al procesar imagen', str(e))
+            self.main_window.dialog(toga.InfoDialog('Error al procesar imagen', str(e)))
 
 def main():
     app = LeafSeverityCalculator('Calculadora de Severidad de Hojas', 'org.example.leafseveritycalculator')
