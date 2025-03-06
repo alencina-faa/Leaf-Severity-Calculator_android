@@ -14,8 +14,8 @@ class LeafSeverityCalculator(toga.App):
         self.img_original = None
         self.mascara_hojas = None
         self.indice = None
-        self.ui_inicial = -0.030792934
-        self.ub_inicial = 180
+        self.ui_inicial = -0.03365811811
+        self.ub_inicial = 185
         self.severidad = 0
         
         # Main box
@@ -55,8 +55,7 @@ class LeafSeverityCalculator(toga.App):
 
                 self.img_original = self.photo.image.as_format(Image.Image)
 
-                self.procesar_imagen()
-
+                await self.procesar_imagen()
         except NotImplementedError:
             await self.main_window.dialog(
                 toga.InfoDialog(
@@ -72,49 +71,67 @@ class LeafSeverityCalculator(toga.App):
                 )
             )
 
-    def procesar_imagen(self):
+    async def procesar_imagen(self):
         try:
-            #b, g, r = cv2.split(np.array(self.img_original))
             r, g, b = Image.Image.split(self.img_original)
         except Exception as e:
-            print(f"Error de split: {e}")
+            await self.main_window.dialog(
+                toga.InfoDialog(
+                    f"Error de split: {e}"
+                )
+            )
 
         try:
-            self.indice = ImageMath.eval("(g - r) / (g + r)", g=g, r=r)
-            #self.indice = np.divide(
-            #    ImageMath.imagemath_float(g) - ImageMath.imagemath_float(r), 
-            #    ImageMath.imagemath_float(g) + ImageMath.imagemath_float(r), 
-            #    out=np.zeros_like(g, dtype=float), 
-            #    where=(g+r) != 0
-            #)
+            g = np.array(g).astype(np.float32)
+            r = np.array(r).astype(np.float32)
+            self.indice = np.divide(
+                g - r, 
+                g + r + 10**(-10)#,
+                #where=(g + r) != 0
+                )                
         except Exception as e:
-            print(f"Error al calcular el índice de enfermedad: {e}")
+            await self.main_window.dialog(
+                toga.InfoDialog(
+                    f"Error al calcular el índice de enfermedad: {e}"
+                )
+            )
 
         try:
-            self.mascara_hojas = np.asarray(b) <= self.ub_inicial
-                
-            mascara_enferma = (np.asarray(self.indice) <= self.ui_inicial) & self.mascara_hojas
-            mascara_sana = (np.asarray(self.indice) > self.ui_inicial) & self.mascara_hojas
+            self.mascara_hojas = np.array(b) <= self.ub_inicial
+            mascara_enferma = (self.indice <= self.ui_inicial) & self.mascara_hojas
+            mascara_sana = (self.indice > self.ui_inicial) & self.mascara_hojas
         except Exception as e:
-            print(f"Error al calcular las máscaras: {e}")
+            await self.main_window.dialog(
+                toga.InfoDialog(
+                    f"Error al calcular las máscaras: {e}"
+                )
+            )
 
         try:
             img_resultado = np.array(self.img_original.copy())
             img_resultado[~self.mascara_hojas] = [0, 0, 0]
-            img_resultado[mascara_enferma] = [0, 0, 255]
+            img_resultado[mascara_enferma] = [255, 0, 0]
             img_resultado[mascara_sana] = [0, 255, 0]
 
-            pil_image = Image.fromarray(img_resultado)      
+            pil_image = Image.fromarray(img_resultado.astype(np.uint8))#(img_resultado)      
             self.result.image = toga.Image(src=pil_image)
         except Exception as e:
-            print(f"Error al aplicar las máscaras: {e}")        
+            await self.main_window.dialog(
+                toga.InfoDialog(
+                    f"Error al aplicar las máscaras: {e}"
+                )
+            )       
             
             
         try:
             self.severidad = np.sum(mascara_enferma) / np.sum(self.mascara_hojas)
-            self.lbl_severidad.text = f"Severidad: {self.severidad:.2%}"            
+            self.lbl_severidad.text = f"Severidad: {self.severidad:.2%}"             
         except Exception as e:
-            print(f"Error al calcular la severidad: {e}")
+            await self.main_window.dialog(
+                toga.InfoDialog(
+                    f"Error al calcular la severidad: {e}"
+                )
+            )
 
 
 def main():
