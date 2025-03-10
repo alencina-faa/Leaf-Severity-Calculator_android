@@ -60,9 +60,10 @@ class LeafSeverityCalculator(toga.App):
         main_box.add(self.result)
         main_box.add(self.lbl_severidad)
 
+        container = toga.ScrollContainer(content=main_box)
 
         self.main_window = toga.MainWindow(title="Calculadora de Severidad de Hojas")
-        self.main_window.content = main_box
+        self.main_window.content = container
         self.main_window.show()
 
     async def take_photo(self, widget, **kwargs):
