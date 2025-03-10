@@ -1,5 +1,5 @@
 """
-This app calculates the leaf severity from a photo - OpenCV Optimized Version
+This app calculates the leaf severity from a photo - Optimized Version with Scientific Index
 """
 
 import toga
@@ -7,17 +7,15 @@ from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
 import numpy as np
 import asyncio
+from PIL import Image
 import io
-from PIL import Image  # Still needed for Toga compatibility
+import time
 
-# Import OpenCV
 try:
     import cv2
 except ImportError:
     print("OpenCV not found. Please install it with: pip install opencv-python")
-    # Fallback to PIL if OpenCV is not available
     cv2 = None
-
 
 class LeafSeverityCalculator(toga.App):
     def startup(self):
@@ -27,11 +25,10 @@ class LeafSeverityCalculator(toga.App):
         self.severidad = 0
         self.processing = False
         self.use_opencv = cv2 is not None
+        self.cache = {}
         
-        # Main box
         main_box = toga.Box(style=Pack(direction=COLUMN, padding=20, background_color='#f0f0f0'))
 
-        # Title
         title = toga.Label('Calculadora de Severidad de Hojas', style=Pack(text_align='center', font_size=24, font_weight='bold', padding=(0, 0, 20, 0)))
         main_box.add(title)
 
@@ -42,11 +39,16 @@ class LeafSeverityCalculator(toga.App):
             style=Pack(padding=5)
         )
 
-        self.lbl_severidad = toga.Label('Severidad: ', style=Pack(flex=1, font_size=18, font_weight='bold', text_align='center'))
+        self.lbl_severidad = toga.Label("", style=Pack(flex=1, font_size=18, font_weight='bold', text_align='center'))
         self.result = toga.ImageView(style=Pack(height=300, padding=5))
+        severity_button = toga.Button(
+            "Calcular la severidad",
+            on_press=self.procesar_imagen,
+            style=Pack(padding=5)
+        )
+
         self.progress_label = toga.Label('', style=Pack(text_align='center'))
         
-        # Add a label to show if using OpenCV or PIL
         engine_label = "Usando OpenCV" if self.use_opencv else "Usando PIL"
         self.engine_label = toga.Label(engine_label, style=Pack(text_align='center', padding=(0, 0, 10, 0)))
 
@@ -54,8 +56,10 @@ class LeafSeverityCalculator(toga.App):
         main_box.add(camera_button)
         main_box.add(self.photo)
         main_box.add(self.progress_label)
-        main_box.add(self.lbl_severidad)
+        main_box.add(severity_button)
         main_box.add(self.result)
+        main_box.add(self.lbl_severidad)
+
 
         self.main_window = toga.MainWindow(title="Calculadora de Severidad de Hojas")
         self.main_window.content = main_box
@@ -74,7 +78,7 @@ class LeafSeverityCalculator(toga.App):
             if image:
                 self.photo.image = image
                 self.img_original = self.photo.image.as_format(Image.Image)
-                await self.procesar_imagen()
+                #await self.procesar_imagen()
         except NotImplementedError:
             await self.main_window.dialog(
                 toga.InfoDialog(
@@ -92,18 +96,29 @@ class LeafSeverityCalculator(toga.App):
         finally:
             self.progress_label.text = ""
 
-    async def procesar_imagen(self):
+    async def procesar_imagen(self, widget, **kwargs):
         self.processing = True
         try:
             self.progress_label.text = "Procesando imagen..."
             
-            # Process in a separate thread to avoid UI freezing
-            result = await asyncio.get_event_loop().run_in_executor(
-                None, self._process_image_opencv if self.use_opencv else self._process_image_pil
+            # Two-stage processing
+            # Stage 1: Quick preview
+            preview_result = await asyncio.get_event_loop().run_in_executor(
+                None, self._process_image_quick
             )
             
-            if result:
-                processed_image, severity = result
+            if preview_result:
+                preview_image, preview_severity = preview_result
+                self.result.image = toga.Image(src=preview_image)
+                self.lbl_severidad.text = f"Severidad (preliminar): {preview_severity:.2%}"
+            
+            # Stage 2: Detailed processing
+            final_result = await asyncio.get_event_loop().run_in_executor(
+                None, self._process_image_detailed
+            )
+            
+            if final_result:
+                processed_image, severity = final_result
                 self.result.image = toga.Image(src=processed_image)
                 self.severidad = severity
                 self.lbl_severidad.text = f"Severidad: {self.severidad:.2%}"
@@ -119,23 +134,62 @@ class LeafSeverityCalculator(toga.App):
             self.progress_label.text = ""
             self.processing = False
 
-    def _process_image_opencv(self):
-        """Process image using OpenCV for better performance"""
+    def _process_image_quick(self):
+        """Quick preview processing"""
         try:
-            # Convert PIL Image to OpenCV format
+            # Use a very small image for quick processing
+            img_small = self._resize_image(self.img_original, 100)
+            
+            # Simple thresholding for quick preview
+            img_array = np.array(img_small)
+            r, g, b = img_array[:,:,0], img_array[:,:,1], img_array[:,:,2]
+            
+            # Use the original index, but with reduced precision for speed
+            epsilon = 1e-7
+            indice = (g.astype(np.float32) - r.astype(np.float32)) / (g.astype(np.float32) + r.astype(np.float32) + epsilon)
+            
+            mascara_hojas = b <= self.ub_inicial
+            mascara_enferma = (indice <= self.ui_inicial) & mascara_hojas
+            
+            severity = np.sum(mascara_enferma) / np.sum(mascara_hojas)
+            
+            # Create a simple preview image
+            preview = np.zeros_like(img_array)
+            preview[mascara_hojas & ~mascara_enferma] = [0, 255, 0]
+            preview[mascara_enferma] = [255, 0, 0]
+            
+            result_image = Image.fromarray(preview.astype(np.uint8))
+            
+            return result_image, severity
+        except Exception as e:
+            print(f"Error in quick processing: {e}")
+            return None
+
+    def _process_image_detailed(self):
+        """Detailed image processing"""
+        # Check cache first
+        cache_key = hash(self.img_original.tobytes())
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+        
+        if self.use_opencv:
+            result = self._process_image_opencv()
+        else:
+            result = self._process_image_pil()
+        
+        # Cache the result
+        self.cache[cache_key] = result
+        return result
+
+    def _process_image_opencv(self):
+        try:
             img_np = np.array(self.img_original)
-            # Convert RGB to BGR (OpenCV format)
             img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
             
-            # Resize for faster processing (maintain aspect ratio)
-            height, width = img_cv.shape[:2]
-            max_dim = 800
-            scale = max_dim / max(height, width)
-            new_width = int(width * scale)
-            new_height = int(height * scale)
-            img_resized = cv2.resize(img_cv, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            # Resize for faster processing, max dimension 800
+            img_resized = self._resize_image(img_cv, 800)
             
-            # Split into BGR channels (OpenCV uses BGR)
+            # Split into BGR channels
             b, g, r = cv2.split(img_resized)
             
             # Convert to float32 for calculations
@@ -143,7 +197,6 @@ class LeafSeverityCalculator(toga.App):
             g = g.astype(np.float32)
             
             # Calculate index with vectorized operations
-            # Add small epsilon to avoid division by zero
             epsilon = 1e-10
             indice = cv2.divide(g - r, g + r + epsilon)
             
@@ -152,22 +205,15 @@ class LeafSeverityCalculator(toga.App):
             mascara_enferma = np.logical_and(indice <= self.ui_inicial, mascara_hojas)
             mascara_sana = np.logical_and(indice > self.ui_inicial, mascara_hojas)
             
-            # Create result image (start with zeros)
-            img_resultado = np.zeros_like(img_resized)
-            
-            # Apply masks - OpenCV uses BGR
-            img_resultado[mascara_sana] = [0, 255, 0]  # Green for healthy
-            img_resultado[mascara_enferma] = [0, 0, 255]  # Red for diseased (BGR)
-            
             # Calculate severity
-            num_enferma = np.count_nonzero(mascara_enferma)
-            num_hojas = np.count_nonzero(mascara_hojas)
-            severity = num_enferma / max(num_hojas, 1)
+            severity = np.sum(mascara_enferma) / max(np.sum(mascara_hojas), 1)
             
-            # Convert back to RGB for PIL
+            # Create result image
+            img_resultado = np.zeros_like(img_resized)
+            img_resultado[mascara_sana] = [0, 255, 0]  # Green for healthy
+            img_resultado[mascara_enferma] = [0, 0, 255]  # Red for diseased
+            
             img_rgb = cv2.cvtColor(img_resultado, cv2.COLOR_BGR2RGB)
-            
-            # Convert to PIL Image for Toga
             result_image = Image.fromarray(img_rgb)
             
             return result_image, severity
@@ -177,44 +223,28 @@ class LeafSeverityCalculator(toga.App):
             return None
 
     def _process_image_pil(self):
-        """Fallback to PIL processing if OpenCV is not available"""
         try:
-            # Resize image for faster processing
-            width, height = self.img_original.size
-            max_dim = 800
-            scale = max_dim / max(width, height)
-            new_width = int(width * scale)
-            new_height = int(height * scale)
-            img_resized = self.img_original.resize((new_width, new_height), Image.LANCZOS)
+            # Resize for faster processing, max dimension 800
+            img_resized = self._resize_image(self.img_original, 800)
             
-            # Convert to numpy array once
             img_array = np.array(img_resized)
+            r, g, b = img_array[:,:,0], img_array[:,:,1], img_array[:,:,2]
             
-            # Extract channels directly from the array
-            r = img_array[:, :, 0].astype(np.float32)
-            g = img_array[:, :, 1].astype(np.float32)
-            b = img_array[:, :, 2].astype(np.uint8)
-            
-            # Calculate index with vectorized operations
+            # Calculate index
             epsilon = 1e-10
-            indice = np.divide(g - r, g + r + epsilon)
+            indice = np.divide(g.astype(np.float32) - r.astype(np.float32), 
+                               g.astype(np.float32) + r.astype(np.float32) + epsilon)
             
-            # Create masks with vectorized operations
             mascara_hojas = b <= self.ub_inicial
             mascara_enferma = (indice <= self.ui_inicial) & mascara_hojas
             mascara_sana = (indice > self.ui_inicial) & mascara_hojas
             
-            # Create result image efficiently
-            img_resultado = np.zeros_like(img_array)
+            severity = np.sum(mascara_enferma) / max(np.sum(mascara_hojas), 1)
             
-            # Apply masks in a vectorized way
+            img_resultado = np.zeros_like(img_array)
             img_resultado[mascara_sana] = [0, 255, 0]  # Green for healthy
             img_resultado[mascara_enferma] = [255, 0, 0]  # Red for diseased
             
-            # Calculate severity
-            severity = np.sum(mascara_enferma) / max(np.sum(mascara_hojas), 1)
-            
-            # Convert back to PIL
             result_image = Image.fromarray(img_resultado.astype(np.uint8))
             
             return result_image, severity
@@ -223,6 +253,22 @@ class LeafSeverityCalculator(toga.App):
             print(f"Error in PIL processing: {e}")
             return None
 
+    def _resize_image(self, img, max_dim):
+        """Resize image keeping aspect ratio"""
+        if isinstance(img, np.ndarray):
+            # OpenCV image
+            height, width = img.shape[:2]
+            scale = min(max_dim / width, max_dim / height)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+            return cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        else:
+            # PIL image
+            width, height = img.size
+            scale = min(max_dim / width, max_dim / height)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+            return img.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
 def main():
     return LeafSeverityCalculator()
