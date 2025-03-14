@@ -171,9 +171,9 @@ requires = [
 [tool.briefcase.app.leafseveritycalculator.android]
 requires = [
     "toga-android~=0.4.5",
-    "F:\\GitHub\\Leaf-Severity-Calculator_evolution\\wheels\\numpy-1.19.5-0-cp38-cp38-android_21_arm64_v8a.whl",
-    "F:\\GitHub\\Leaf-Severity-Calculator_evolution\\wheels\\opencv_python-4.5.1.48-1-cp38-cp38-android_21_arm64_v8a.whl",
-    "F:\\GitHub\\Leaf-Severity-Calculator_evolution\\wheels\\tatogalib-0.9.6-py3-none-any.whl",
+    "../wheels/numpy-1.19.5-0-cp38-cp38-android_21_arm64_v8a.whl",
+    "../wheels/opencv_python-4.5.1.48-1-cp38-cp38-android_21_arm64_v8a.whl",
+    "../wheels/tatogalib-0.9.6-py3-none-any.whl",
 ]
 
 build_gradle_extra_content = """\
