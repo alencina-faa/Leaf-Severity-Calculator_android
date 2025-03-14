@@ -11,6 +11,9 @@ from PIL import Image
 import io
 import time
 
+from tatogalib.uri_io.urifilebrowser import UriFileBrowser
+from tatogalib.uri_io.urifile import UriFile
+
 try:
     import cv2
 except ImportError:
@@ -38,6 +41,16 @@ class LeafSeverityCalculator(toga.App):
             on_press=self.take_photo,
             style=Pack(padding=5)
         )
+        gallery_image_button = toga.Button(
+            "Seleccionar una imagen",
+            on_press=self.open_image,
+            style=Pack(padding=5)
+        )
+        buttons_box = toga.Box(style=Pack(direction=ROW, padding=2, background_color='#f0f0f0'))
+        buttons_box.add(camera_button)
+        buttons_box.add(gallery_image_button)
+
+
 
         self.lbl_severidad = toga.Label("", style=Pack(flex=1, font_size=18, font_weight='bold', text_align='center'))
         self.result = toga.ImageView(style=Pack(height=300, padding=5))
@@ -52,14 +65,19 @@ class LeafSeverityCalculator(toga.App):
         engine_label = "Usando OpenCV" if self.use_opencv else "Usando PIL"
         self.engine_label = toga.Label(engine_label, style=Pack(text_align='center', padding=(0, 0, 10, 0)))
 
+
+
         main_box.add(self.engine_label)
-        main_box.add(camera_button)
+        #main_box.add(camera_button)
+        main_box.add(buttons_box)
         main_box.add(self.photo)
         main_box.add(self.progress_label)
         main_box.add(severity_button)
         main_box.add(self.result)
         main_box.add(self.lbl_severidad)
 
+
+        
         container = toga.ScrollContainer(content=main_box)
 
         self.main_window = toga.MainWindow(title="Calculadora de Severidad de Hojas")
@@ -270,6 +288,25 @@ class LeafSeverityCalculator(toga.App):
             new_width = int(width * scale)
             new_height = int(height * scale)
             return img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+    async def open_image(self, widget, **kwargs):
+        """Opens an image from folder"""
+        fb = UriFileBrowser()
+        initial = "content://com.android.externalstorage.documents/"#document/primary%3APictures"
+        urilist = await fb.open_file_dialog("",
+                        file_types=["jpg"],
+                        initial_uri=initial,
+                        multiselect= False
+                        )
+        
+        urifile = UriFile(urilist[0])
+        f = urifile.open("rb", "utf-8-sig", newline= None)
+        bytesobj = f.read()
+        f.close()
+        self.photo.image = toga.Image(bytesobj)
+        self.img_original = self.photo.image.as_format(Image.Image)
+
+
 
 def main():
     return LeafSeverityCalculator()
