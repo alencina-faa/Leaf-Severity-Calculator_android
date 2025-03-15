@@ -1,5 +1,5 @@
 """
-This app calculates the leaf severity from a photo - Optimized Version with Scientific Index
+This app calculates the leaf severity from a photo or image frl gallery - Optimized Version with Scientific Index
 """
 
 import toga
@@ -14,7 +14,7 @@ import time
 from tatogalib.uri_io.urifilebrowser import UriFileBrowser
 from tatogalib.uri_io.urifile import UriFile
 
-try:
+try:#esto se podría sacar e importar siempre directamente opencv
     import cv2
 except ImportError:
     print("OpenCV not found. Please install it with: pip install opencv-python")
@@ -30,53 +30,36 @@ class LeafSeverityCalculator(toga.App):
         self.use_opencv = cv2 is not None
         self.cache = {}
         
-        main_box = toga.Box(style=Pack(direction=COLUMN, padding=20, background_color='#f0f0f0'))
+        main_box = toga.Box(style=Pack(direction=COLUMN, padding=2, background_color='#f0f0f0', flex=1))
 
-        title = toga.Label('Calculadora de Severidad de Hojas', style=Pack(text_align='center', font_size=24, font_weight='bold', padding=(0, 0, 20, 0)))
-        main_box.add(title)
-
-        self.photo = toga.ImageView(style=Pack(height=300, padding=5))
+        self.photo = toga.ImageView(style=Pack(height=300, padding=5, flex=1))
         camera_button = toga.Button(
-            "Tomar foto",
+            "Tomar una foto",
             on_press=self.take_photo,
-            style=Pack(padding=5)
+            style=Pack(padding=5, flex=1)
         )
         gallery_image_button = toga.Button(
             "Seleccionar una imagen",
             on_press=self.open_image,
-            style=Pack(padding=5)
+            style=Pack(padding=5, flex=1)
         )
         buttons_box = toga.Box(style=Pack(direction=ROW, padding=2, background_color='#f0f0f0'))
         buttons_box.add(camera_button)
         buttons_box.add(gallery_image_button)
 
-
-
         self.lbl_severidad = toga.Label("", style=Pack(flex=1, font_size=18, font_weight='bold', text_align='center'))
-        self.result = toga.ImageView(style=Pack(height=300, padding=5))
+        self.result = toga.ImageView(style=Pack(height=300, padding=5, flex=1))
         severity_button = toga.Button(
             "Calcular la severidad",
             on_press=self.procesar_imagen,
             style=Pack(padding=5)
         )
 
-        self.progress_label = toga.Label('', style=Pack(text_align='center'))
-        
-        engine_label = "Usando OpenCV" if self.use_opencv else "Usando PIL"
-        self.engine_label = toga.Label(engine_label, style=Pack(text_align='center', padding=(0, 0, 10, 0)))
-
-
-
-        main_box.add(self.engine_label)
-        #main_box.add(camera_button)
         main_box.add(buttons_box)
         main_box.add(self.photo)
-        main_box.add(self.progress_label)
         main_box.add(severity_button)
         main_box.add(self.result)
         main_box.add(self.lbl_severidad)
-
-
         
         container = toga.ScrollContainer(content=main_box)
 
@@ -92,12 +75,13 @@ class LeafSeverityCalculator(toga.App):
             if not self.camera.has_permission:
                 await self.camera.request_permission()
 
-            self.progress_label.text = "Tomando foto..."
             image = await self.camera.take_photo()
+
             if image:
                 self.photo.image = image
                 self.img_original = self.photo.image.as_format(Image.Image)
-                #await self.procesar_imagen()
+
+                
         except NotImplementedError:
             await self.main_window.dialog(
                 toga.InfoDialog(
@@ -112,14 +96,11 @@ class LeafSeverityCalculator(toga.App):
                     "You have not granted permission to take photos",
                 )
             )
-        finally:
-            self.progress_label.text = ""
-
+        
     async def procesar_imagen(self, widget, **kwargs):
         self.processing = True
         try:
-            self.progress_label.text = "Procesando imagen..."
-            
+            """ELIMINAR el quick preview"""
             # Two-stage processing
             # Stage 1: Quick preview
             preview_result = await asyncio.get_event_loop().run_in_executor(
@@ -150,11 +131,10 @@ class LeafSeverityCalculator(toga.App):
                 )
             )
         finally:
-            self.progress_label.text = ""
             self.processing = False
 
     def _process_image_quick(self):
-        """Quick preview processing"""
+        """Quick preview processing -->ELIMINAR!!!!"""
         try:
             # Use a very small image for quick processing
             img_small = self._resize_image(self.img_original, 100)
@@ -191,7 +171,7 @@ class LeafSeverityCalculator(toga.App):
         if cache_key in self.cache:
             return self.cache[cache_key]
         
-        if self.use_opencv:
+        if self.use_opencv:#ELIMINAR PROCESADO CON PIL
             result = self._process_image_opencv()
         else:
             result = self._process_image_pil()
@@ -241,6 +221,7 @@ class LeafSeverityCalculator(toga.App):
             print(f"Error in OpenCV processing: {e}")
             return None
 
+    """ELIMINAR PROCESADO CON PIL"""
     def _process_image_pil(self):
         try:
             # Resize for faster processing, max dimension 800
@@ -281,7 +262,7 @@ class LeafSeverityCalculator(toga.App):
             new_width = int(width * scale)
             new_height = int(height * scale)
             return cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
-        else:
+        else:#ELIMINAR PROCESADO CON PIL
             # PIL image
             width, height = img.size
             scale = min(max_dim / width, max_dim / height)
@@ -292,7 +273,7 @@ class LeafSeverityCalculator(toga.App):
     async def open_image(self, widget, **kwargs):
         """Opens an image from folder"""
         fb = UriFileBrowser()
-        initial = "content://com.android.externalstorage.documents/"#document/primary%3APictures"
+        initial = "content://com.android.externalstorage.documents/document/camera"
         urilist = await fb.open_file_dialog("",
                         file_types=["jpg"],
                         initial_uri=initial,
