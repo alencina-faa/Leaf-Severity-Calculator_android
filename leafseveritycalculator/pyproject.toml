@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "LeafSeverityCalculator"
 bundle = "ar.edu.unicen.faa"
-version = "0.0.1"
+version = "0.0.2"
 url = "https://faa.unicen.edu.ar/leafseveritycalculator"
 license.file = "LICENSE"
 author = "Emiliano David, Alberto Lencina, Luisa Cabezas"
@@ -15,8 +15,13 @@ requires = [
 
 [tool.briefcase.app.leafseveritycalculator]
 formal_name = "LeafSeverityCalculator"
-description = "This app calculates the leaf severity from a photo"
-long_description = """More details about the app should go here.
+description = "This app calculates the leaf severity from a photo or an image"
+long_description = """This application segments a photo or image of barley leaves pasted on 
+a white sheet of paper into: background (black), healthy leaf portion (green), and diseased 
+leaf portion (red). It then calculates the severity as the percentage of pixels in the diseased 
+leaf regions relative to the total leaf pixels. The values ​​used for segmentation were obtained 
+from a sample of training images using the Otsu algorithm for the blue band and the Kmeans 
+algorithm for the (red - green) / (red + green) index.
 """
 permission.camera = "App will take mugshots."
 

@@ -10,15 +10,9 @@ import asyncio
 from PIL import Image
 import io
 import time
-
+import cv2
 from tatogalib.uri_io.urifilebrowser import UriFileBrowser
 from tatogalib.uri_io.urifile import UriFile
-
-try:#esto se podría sacar e importar siempre directamente opencv
-    import cv2
-except ImportError:
-    print("OpenCV not found. Please install it with: pip install opencv-python")
-    cv2 = None
 
 class LeafSeverityCalculator(toga.App):
     def startup(self):
@@ -27,46 +21,51 @@ class LeafSeverityCalculator(toga.App):
         self.ub_inicial = 185
         self.severidad = 0
         self.processing = False
-        self.use_opencv = cv2 is not None
         self.cache = {}
         
-        main_box = toga.Box(style=Pack(direction=COLUMN, padding=2, background_color='#f0f0f0', flex=1))
+        self.main_window = toga.MainWindow(title="Calculadora de Severidad de Hojas")
+        self.main_window.show()
 
-        self.photo = toga.ImageView(style=Pack(height=300, padding=5, flex=1))
+        main_box = toga.Box(style=Pack(direction=COLUMN, padding=2, background_color='#f0f0f0', flex=1))
+        
+        container = toga.ScrollContainer(content=main_box)
+        self.main_window.content = container
+        
+        buttons_box = toga.Box(style=Pack(direction=ROW, padding=2, background_color='#f0f0f0'))
+        main_box.add(buttons_box)
+
         camera_button = toga.Button(
             "Tomar una foto",
             on_press=self.take_photo,
             style=Pack(padding=5, flex=1)
         )
+        buttons_box.add(camera_button)
+
         gallery_image_button = toga.Button(
             "Seleccionar una imagen",
             on_press=self.open_image,
             style=Pack(padding=5, flex=1)
         )
-        buttons_box = toga.Box(style=Pack(direction=ROW, padding=2, background_color='#f0f0f0'))
-        buttons_box.add(camera_button)
         buttons_box.add(gallery_image_button)
 
-        self.lbl_severidad = toga.Label("", style=Pack(flex=1, font_size=18, font_weight='bold', text_align='center'))
-        self.result = toga.ImageView(style=Pack(height=300, padding=5, flex=1))
+        self.photo = toga.ImageView(style=Pack(height=300, padding=5, flex=1))
+        main_box.add(self.photo)
+
+
         severity_button = toga.Button(
             "Calcular la severidad",
             on_press=self.procesar_imagen,
             style=Pack(padding=5)
         )
-
-        main_box.add(buttons_box)
-        main_box.add(self.photo)
         main_box.add(severity_button)
+
+        self.result = toga.ImageView(style=Pack(height=300, padding=5, flex=1))
         main_box.add(self.result)
+
+        self.lbl_severidad = toga.Label("", style=Pack(flex=1, font_size=18, font_weight='bold', text_align='center'))
         main_box.add(self.lbl_severidad)
         
-        container = toga.ScrollContainer(content=main_box)
-
-        self.main_window = toga.MainWindow(title="Calculadora de Severidad de Hojas")
-        self.main_window.content = container
-        self.main_window.show()
-
+        
     async def take_photo(self, widget, **kwargs):
         if self.processing:
             return
@@ -100,19 +99,6 @@ class LeafSeverityCalculator(toga.App):
     async def procesar_imagen(self, widget, **kwargs):
         self.processing = True
         try:
-            """ELIMINAR el quick preview"""
-            # Two-stage processing
-            # Stage 1: Quick preview
-            preview_result = await asyncio.get_event_loop().run_in_executor(
-                None, self._process_image_quick
-            )
-            
-            if preview_result:
-                preview_image, preview_severity = preview_result
-                self.result.image = toga.Image(src=preview_image)
-                self.lbl_severidad.text = f"Severidad (preliminar): {preview_severity:.2%}"
-            
-            # Stage 2: Detailed processing
             final_result = await asyncio.get_event_loop().run_in_executor(
                 None, self._process_image_detailed
             )
@@ -133,37 +119,6 @@ class LeafSeverityCalculator(toga.App):
         finally:
             self.processing = False
 
-    def _process_image_quick(self):
-        """Quick preview processing -->ELIMINAR!!!!"""
-        try:
-            # Use a very small image for quick processing
-            img_small = self._resize_image(self.img_original, 100)
-            
-            # Simple thresholding for quick preview
-            img_array = np.array(img_small)
-            r, g, b = img_array[:,:,0], img_array[:,:,1], img_array[:,:,2]
-            
-            # Use the original index, but with reduced precision for speed
-            epsilon = 1e-7
-            indice = (g.astype(np.float32) - r.astype(np.float32)) / (g.astype(np.float32) + r.astype(np.float32) + epsilon)
-            
-            mascara_hojas = b <= self.ub_inicial
-            mascara_enferma = (indice <= self.ui_inicial) & mascara_hojas
-            
-            severity = np.sum(mascara_enferma) / np.sum(mascara_hojas)
-            
-            # Create a simple preview image
-            preview = np.zeros_like(img_array)
-            preview[mascara_hojas & ~mascara_enferma] = [0, 255, 0]
-            preview[mascara_enferma] = [255, 0, 0]
-            
-            result_image = Image.fromarray(preview.astype(np.uint8))
-            
-            return result_image, severity
-        except Exception as e:
-            print(f"Error in quick processing: {e}")
-            return None
-
     def _process_image_detailed(self):
         """Detailed image processing"""
         # Check cache first
@@ -171,11 +126,8 @@ class LeafSeverityCalculator(toga.App):
         if cache_key in self.cache:
             return self.cache[cache_key]
         
-        if self.use_opencv:#ELIMINAR PROCESADO CON PIL
-            result = self._process_image_opencv()
-        else:
-            result = self._process_image_pil()
-        
+        result = self._process_image_opencv()
+
         # Cache the result
         self.cache[cache_key] = result
         return result
@@ -221,54 +173,15 @@ class LeafSeverityCalculator(toga.App):
             print(f"Error in OpenCV processing: {e}")
             return None
 
-    """ELIMINAR PROCESADO CON PIL"""
-    def _process_image_pil(self):
-        try:
-            # Resize for faster processing, max dimension 800
-            img_resized = self._resize_image(self.img_original, 800)
-            
-            img_array = np.array(img_resized)
-            r, g, b = img_array[:,:,0], img_array[:,:,1], img_array[:,:,2]
-            
-            # Calculate index
-            epsilon = 1e-10
-            indice = np.divide(g.astype(np.float32) - r.astype(np.float32), 
-                               g.astype(np.float32) + r.astype(np.float32) + epsilon)
-            
-            mascara_hojas = b <= self.ub_inicial
-            mascara_enferma = (indice <= self.ui_inicial) & mascara_hojas
-            mascara_sana = (indice > self.ui_inicial) & mascara_hojas
-            
-            severity = np.sum(mascara_enferma) / max(np.sum(mascara_hojas), 1)
-            
-            img_resultado = np.zeros_like(img_array)
-            img_resultado[mascara_sana] = [0, 255, 0]  # Green for healthy
-            img_resultado[mascara_enferma] = [255, 0, 0]  # Red for diseased
-            
-            result_image = Image.fromarray(img_resultado.astype(np.uint8))
-            
-            return result_image, severity
-            
-        except Exception as e:
-            print(f"Error in PIL processing: {e}")
-            return None
 
     def _resize_image(self, img, max_dim):
         """Resize image keeping aspect ratio"""
-        if isinstance(img, np.ndarray):
             # OpenCV image
-            height, width = img.shape[:2]
-            scale = min(max_dim / width, max_dim / height)
-            new_width = int(width * scale)
-            new_height = int(height * scale)
-            return cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
-        else:#ELIMINAR PROCESADO CON PIL
-            # PIL image
-            width, height = img.size
-            scale = min(max_dim / width, max_dim / height)
-            new_width = int(width * scale)
-            new_height = int(height * scale)
-            return img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        height, width = img.shape[:2]
+        scale = min(max_dim / width, max_dim / height)
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+        return cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
 
     async def open_image(self, widget, **kwargs):
         """Opens an image from folder"""
