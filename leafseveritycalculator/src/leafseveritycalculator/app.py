@@ -1,5 +1,5 @@
 """
-This app calculates the leaf severity from a photo or image frl gallery - Optimized Version with Scientific Index
+This app calculates the leaf severity from a photo or image from gallery - Optimized Version with Scientific Index
 """
 
 import toga
