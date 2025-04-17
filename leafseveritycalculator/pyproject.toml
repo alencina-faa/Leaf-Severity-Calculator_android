@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "LeafSeverityCalculator"
 bundle = "ar.edu.unicen.faa"
-version = "0.0.2"
+version = "0.0.3"
 url = "https://faa.unicen.edu.ar/leafseveritycalculator"
 license.file = "LICENSE"
 author = "Emiliano David, Alberto Lencina, Luisa Cabezas"
@@ -11,6 +11,7 @@ author_email = "alencina@azul.faa.unicen.edu.ar"
 requires = [
     "toga-core",
     "Pillow",
+    "opencv-rolling-ball",
 ]
 
 [tool.briefcase.app.leafseveritycalculator]

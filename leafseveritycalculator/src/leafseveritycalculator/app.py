@@ -13,6 +13,7 @@ import time
 import cv2
 from tatogalib.uri_io.urifilebrowser import UriFileBrowser
 from tatogalib.uri_io.urifile import UriFile
+from cv2_rolling_ball import subtract_background_rolling_ball
 
 class LeafSeverityCalculator(toga.App):
     def startup(self):
@@ -77,8 +78,9 @@ class LeafSeverityCalculator(toga.App):
             image = await self.camera.take_photo()
 
             if image:
-                self.photo.image = image
-                self.img_original = self.photo.image.as_format(Image.Image)
+                image_corr = self.extract_background_color(np.array(image.as_format(Image.Image)))
+                self.photo.image = toga.Image(Image.fromarray(image_corr))
+                self.img_original = Image.fromarray(image_corr)#self.photo.image.as_format(Image.Image)
 
                 
         except NotImplementedError:
@@ -197,8 +199,37 @@ class LeafSeverityCalculator(toga.App):
         f = urifile.open("rb", "utf-8-sig", newline= None)
         bytesobj = f.read()
         f.close()
-        self.photo.image = toga.Image(bytesobj)
-        self.img_original = self.photo.image.as_format(Image.Image)
+        image_corr = self.extract_background_color(np.array(toga.Image(bytesobj).as_format(Image.Image)))
+        self.photo.image = toga.Image(Image.fromarray(image_corr))
+        self.img_original = Image.fromarray(image_corr)#self.photo.image.as_format(Image.Image)
+
+    
+    def extract_background_color(self, image_rgb_original):
+        """Recibe una imagen, redimensiona, extrae fondo, redimensiona el fondo al tamaño original 
+        y sustrae el fondo agrandado a la imagen original. El fondo final queda en blanco."""
+        # Parámetros ajustables
+        RESIZE_FACTOR = 0.1
+        ROLLING_RADIUS = 101
+
+        # Redimensionar la imagen original
+        image_rgb_small = cv2.resize(image_rgb_original, None, fx=RESIZE_FACTOR, fy=RESIZE_FACTOR, interpolation=cv2.INTER_AREA)
+        
+        # Separar canales de color
+        b, g, r = cv2.split(image_rgb_small)
+        # Aplicar Rolling Ball a cada canal
+        _, b_background = subtract_background_rolling_ball(b, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=True)
+        _, g_background = subtract_background_rolling_ball(g, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=True)
+        _, r_background = subtract_background_rolling_ball(r, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=True)
+        
+        # Imagen de fondo pequeña reconstruida
+        background_rgb_small = cv2.merge([b_background, g_background, r_background])
+
+        # Redimensionar el fondo al tamaño original
+        background_rgb_full = cv2.resize(background_rgb_small, (image_rgb_original.shape[1], image_rgb_original.shape[0]), interpolation=cv2.INTER_CUBIC)
+
+        # Sustraer el fondo redimensionado a la imagen original y crear fondo blanco
+        image_corrected_rgb_full = cv2.subtract(background_rgb_full, image_rgb_original)
+        return cv2.bitwise_not(image_corrected_rgb_full)
 
 
 
