@@ -213,9 +213,9 @@ android {
                     'proguard-android-optimize.txt'),
                     'proguard-rules.pro'
 
+            // at android_gradle_app_build_intermediates_merged_native_libs_release_out_lib
             ndk {
                 debugSymbolLevel 'FULL'
-                //at android\gradle\app\build\intermediates\merged_native_libs\release\out\lib
             }
         }
     }
