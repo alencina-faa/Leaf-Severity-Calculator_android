@@ -5,7 +5,6 @@ This app calculates the leaf severity from a photo or image from gallery - Optim
 import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
-import numpy as np
 import asyncio
 from PIL import Image
 import io
@@ -66,6 +65,21 @@ class LeafSeverityCalculator(toga.App):
         self.lbl_severidad = toga.Label("", style=Pack(flex=1, font_size=18, font_weight='bold', text_align='center'))
         main_box.add(self.lbl_severidad)
         
+        logos_box = toga.Box(style=Pack(direction=ROW, padding=5, background_color='#f0f0f0', flex=1))
+        main_box.add(logos_box)
+
+        # 🚀 Agregar logo institucional
+        self.logo_uceva = toga.ImageView(
+            toga.Image("resources/logo_uceva.png"),  # Cambia a la ruta real de tu logo
+            style=Pack(padding_top=2, padding_bottom=2, flex=1)
+        )
+        logos_box.add(self.logo_uceva)
+
+        self.logo_faa = toga.ImageView(
+            toga.Image("resources/LOGO_FAA.png"),  # Cambia a la ruta real de tu logo
+            style=Pack(padding_top=2, padding_bottom=2, flex=1)
+        )
+        logos_box.add(self.logo_faa)
         
     async def take_photo(self, widget, **kwargs):
         if self.processing:
