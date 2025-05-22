@@ -26,10 +26,6 @@ algorithm for the (red - green) / (red + green) index.
 """
 permission.camera = "App will take mugshots."
 
-icon = "icons/logoapp"
-
-resources = ["resources"]
-
 sources = [
     "src/leafseveritycalculator",
 ]
