@@ -65,3 +65,4 @@ var/
 logs/
 /lsc_android
 /.venv_lsc_android
+/.venv
