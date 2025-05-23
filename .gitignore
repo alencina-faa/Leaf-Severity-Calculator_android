@@ -63,3 +63,4 @@ var/
 
 # Briefcase log files
 logs/
+/.venv
