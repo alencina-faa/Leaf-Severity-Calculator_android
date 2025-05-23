@@ -78,11 +78,11 @@ class LeafSeverityCalculator(toga.App):
 
         self.logo_uceva = toga.ImageView(
             toga.Image("resources/logo_uceva.png"),
-            style=Pack(width=230, height=80, padding_left=10, padding_right=20, padding_bottom=70)
+            style=Pack(padding_top=2, padding_bottom=5,flex=1, alignment=CENTER)
         )
         self.logo_faa = toga.ImageView(
             toga.Image("resources/LOGO_FAA.png"),
-            style=Pack(width=230, height=70, padding=10,  padding_bottom=70)
+            style=Pack(padding_top=2, padding_bottom=5,flex=1, alignment=CENTER)
         )
         logos_row.add(self.logo_uceva)
         logos_row.add(self.logo_faa)
