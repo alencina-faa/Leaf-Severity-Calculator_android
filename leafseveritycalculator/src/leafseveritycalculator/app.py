@@ -73,7 +73,8 @@ class LeafSeverityCalculator(toga.App):
         main_box.add(iconos_box)
 
         # Logos institucionales grandes
-        logos_row = toga.Box(style=Pack(direction=ROW, padding=10, alignment=CENTER))
+        logos_row = toga.Box(style=Pack(direction=ROW, padding=5, background_color='#f0f0f0', 
+                                        flex=1, alignment=BOTTOM, height=70))
 
         self.logo_uceva = toga.ImageView(
             toga.Image("resources/logo_uceva.png"),
