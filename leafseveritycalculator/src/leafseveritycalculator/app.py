@@ -4,8 +4,9 @@ This app calculates the leaf severity from a photo or image from gallery - Optim
 
 import toga
 from toga.style import Pack
-from toga.style.pack import COLUMN, ROW, BOTTOM
+from toga.style.pack import COLUMN, ROW, BOTTOM, CENTER
 import asyncio
+import numpy as np
 from PIL import Image
 import io
 import time
@@ -31,7 +32,7 @@ class LeafSeverityCalculator(toga.App):
         container = toga.ScrollContainer(content=main_box)
         self.main_window.content = container
         
-        buttons_box = toga.Box(style=Pack(direction=ROW, padding=2, background_color='#f0f0f0'))
+        buttons_box = toga.Box(style=Pack(direction=ROW, padding=2, background_color='#f0f0f0', flex=1))
         main_box.add(buttons_box)
 
         camera_button = toga.Button(
@@ -55,7 +56,7 @@ class LeafSeverityCalculator(toga.App):
         severity_button = toga.Button(
             "Calcular la severidad",
             on_press=self.procesar_imagen,
-            style=Pack(padding=5)
+            style=Pack(padding=5, flex=1)
         )
         main_box.add(severity_button)
 
@@ -65,19 +66,20 @@ class LeafSeverityCalculator(toga.App):
         self.lbl_severidad = toga.Label("", style=Pack(flex=1, font_size=18, font_weight='bold', text_align='center'))
         main_box.add(self.lbl_severidad)
         
-        logos_box = toga.Box(style=Pack(direction=ROW, padding=5, background_color='#f0f0f0', flex=1, alignment=BOTTOM))
+        logos_box = toga.Box(style=Pack(direction=ROW, padding=5, background_color='#f0f0f0', 
+                                        flex=1, alignment=BOTTOM, height=70))
         main_box.add(logos_box)
 
         # 🚀 Agregar logo institucional
         self.logo_uceva = toga.ImageView(
             toga.Image("resources/logo_uceva.png"),  # Cambia a la ruta real de tu logo
-            style=Pack(padding_top=2, padding_bottom=2, flex=1, alignment=BOTTOM)
+            style=Pack(padding_top=2, padding_bottom=5,flex=1, alignment=CENTER)
         )
         logos_box.add(self.logo_uceva)
 
         self.logo_faa = toga.ImageView(
             toga.Image("resources/LOGO_FAA.png"),  # Cambia a la ruta real de tu logo
-            style=Pack(padding_top=2, padding_bottom=2, flex=1, alignment=BOTTOM)
+            style=Pack(padding_top=2, padding_bottom=5,flex=1, alignment=CENTER)
         )
         logos_box.add(self.logo_faa)
         
