@@ -52,22 +52,34 @@ class LeafSeverityCalculator(toga.App):
         main_box.add(self.lbl_severidad)
 
         # Caja horizontal de íconos con fondo blanco
-        iconos_box = toga.Box(style=Pack(direction=ROW, background_color='white', padding=10, alignment=CENTER, flex=1))
+        iconos_box = toga.Box(style=Pack(direction=ROW, background_color='white', padding=10, alignment=BOTTOM, flex=1))
 
-        icono_inicio = toga.Button(icon="resources/iconohome.png", on_press=self.inicio, style=Pack(padding_left=70, padding_right=20, background_color="white"))
+        icono_inicio = toga.Button(icon="resources/iconohome.png", on_press=self.inicio, 
+                                   #style=Pack(padding_left=70, padding_right=20, background_color="white")
+                                   style=Pack(padding_top=2, padding_bottom=0,flex=1, background_color="white", 
+                                              alignment=CENTER)
+                                   )
         iconos_box.add(icono_inicio)
 
-        icono_guardar = toga.Button(icon="resources/iconoguardar.png", on_press=self.guardar_imagen, style=Pack(padding_left=20, padding_right=20, background_color="white"))
+        icono_guardar = toga.Button(icon="resources/iconoguardar.png", on_press=self.guardar_imagen, 
+                                    #style=Pack(padding_left=20, padding_right=20, background_color="white")
+                                    style=Pack(padding_top=2, padding_bottom=0,flex=1, background_color="white", 
+                                                alignment=CENTER)
+                                    )
         iconos_box.add(icono_guardar)
         
-        icono_ayuda = toga.Button(
-            icon="resources/iconoayuda.png",
-            on_press=self.mostrar_ayuda,
-            style=Pack(padding_left=20, padding_right=20, background_color="white")
-        )
+        icono_ayuda = toga.Button(icon="resources/iconoayuda.png", on_press=self.mostrar_ayuda,
+                                  #style=Pack(padding_left=20, padding_right=20, background_color="white")
+                                  style=Pack(padding_top=2, padding_bottom=0,flex=1, background_color="white", 
+                                            alignment=CENTER)
+                                  )
         iconos_box.add(icono_ayuda)
 
-        icono_salir = toga.Button(icon="resources/iconosalir.png", on_press=self.salir, style=Pack(padding_left=20, padding_right=20, background_color="white"))
+        icono_salir = toga.Button(icon="resources/iconosalir.png", on_press=self.salir, 
+                                  #style=Pack(padding_left=20, padding_right=20, background_color="white")
+                                  style=Pack(padding_top=2, padding_bottom=0,flex=1, background_color="white", 
+                                             alignment=CENTER)
+                                  )
         iconos_box.add(icono_salir)
 
         main_box.add(iconos_box)
@@ -88,6 +100,15 @@ class LeafSeverityCalculator(toga.App):
         logos_row.add(self.logo_faa)
 
         main_box.add(logos_row)
+
+        logo_cic_container = toga.Box(style=Pack(direction=ROW, padding=0, background_color="#00aec3",
+                                                flex=1, alignment=BOTTOM, height=70))
+        logo_cic = toga.ImageView(
+            toga.Image("resources/logoCIC.png"),
+            style=Pack(padding_top=2, padding_bottom=5,flex=1, alignment=CENTER)
+        )
+        logo_cic_container.add(logo_cic)
+        main_box.add(logo_cic_container)
 
     def inicio(self, widget):
         self.photo.image = None
