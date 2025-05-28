@@ -223,7 +223,7 @@ class LeafSeverityCalculator(toga.App):
     async def open_image(self, widget, **kwargs):
         import numpy as np
         fb = UriFileBrowser()
-        initial = "content://media/external/images/media"
+        initial = "content://media/external/images/media"#"content://com.android.externalstorage.documents/document/camera"
         urilist = await fb.open_file_dialog("", file_types=["jpg"], initial_uri=initial, multiselect=False)
 
         urifile = UriFile(urilist[0])

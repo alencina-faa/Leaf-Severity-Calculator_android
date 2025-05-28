@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "LeafSeverityCalculator"
 bundle = "ar.edu.unicen.faa"
-version = "0.0.4"
+version = "0.0.6"
 url = "https://faa.unicen.edu.ar/leafseveritycalculator"
 license.file = "LICENSE"
 author = "Emiliano David, Alberto Lencina, Luisa Cabezas"
@@ -24,7 +24,7 @@ leaf regions relative to the total leaf pixels. The values ​​used for segmen
 from a sample of training images using the Otsu algorithm for the blue band and the Kmeans 
 algorithm for the (red - green) / (red + green) index.
 """
-permission.camera = "App will take mugshots."
+permission.camera = "Permitir tomar fotos."
 
 icon = "icons/logoapp"
 
