@@ -150,9 +150,30 @@ class LeafSeverityCalculator(toga.App):
                 await self.camera.request_permission()
             image = await self.camera.take_photo()
             if image:
-                image_corr = self.extract_background_color(np.array(image.as_format(Image.Image)))
-                self.photo.image = toga.Image(Image.fromarray(image_corr))
-                self.img_original = Image.fromarray(image_corr)
+                self.photo.image = image
+                self.img_original = image.as_format(Image.Image)
+
+                # Procesar la corrección de fondo en segundo plano
+                self.processing = True
+                try:
+                    image_corr = await asyncio.get_event_loop().run_in_executor(
+                                        None, self.extract_background_color, np.array(self.img_original)
+                                    )
+                
+                    # Actualizar con la imagen corregida
+                    self.photo.image = toga.Image(Image.fromarray(image_corr))
+                    self.img_original = Image.fromarray(image_corr)
+                
+                except Exception as e:
+                    print(f"Error en corrección de fondo: {e}")
+                # Mantener la imagen original si falla la corrección
+                finally:
+                    self.processing = False
+                
+                #image_corr = self.extract_background_color(np.array(image.as_format(Image.Image)))
+                #self.photo.image = toga.Image(Image.fromarray(image_corr))
+                #self.img_original = Image.fromarray(image_corr)
+
         except NotImplementedError:
             await self.main_window.dialog(toga.InfoDialog("Oh no!", "The Camera API is not implemented on this platform"))
         except PermissionError:
@@ -230,9 +251,31 @@ class LeafSeverityCalculator(toga.App):
         f = urifile.open("rb", "utf-8-sig", newline=None)
         bytesobj = f.read()
         f.close()
-        image_corr = self.extract_background_color(np.array(toga.Image(bytesobj).as_format(Image.Image)))
-        self.photo.image = toga.Image(Image.fromarray(image_corr))
-        self.img_original = Image.fromarray(image_corr)
+        
+
+        self.photo.image = toga.Image(bytesobj)
+        self.img_original = toga.Image(bytesobj).as_format(Image.Image)
+
+        # Procesar la corrección de fondo en segundo plano
+        self.processing = True
+        try:
+            image_corr = await asyncio.get_event_loop().run_in_executor(
+                            None, self.extract_background_color, np.array(self.img_original)
+                                    )
+                
+            # Actualizar con la imagen corregida
+            self.photo.image = toga.Image(Image.fromarray(image_corr))
+            self.img_original = Image.fromarray(image_corr)
+                
+        except Exception as e:
+            print(f"Error en corrección de fondo: {e}")
+            # Mantener la imagen original si falla la corrección
+        finally:
+            self.processing = False
+
+        #image_corr = self.extract_background_color(np.array(toga.Image(bytesobj).as_format(Image.Image)))
+        #self.photo.image = toga.Image(Image.fromarray(image_corr))
+        #self.img_original = Image.fromarray(image_corr)
 
     def extract_background_color(self, image_rgb_original):
         RESIZE_FACTOR = 0.1
