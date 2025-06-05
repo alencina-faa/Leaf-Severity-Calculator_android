@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "LeafSeverityCalculator"
 bundle = "ar.edu.unicen.faa"
-version = "0.0.6"
+version = "0.0.7"
 url = "https://faa.unicen.edu.ar/leafseveritycalculator"
 license.file = "LICENSE"
 author = "Emiliano David, Alberto Lencina, Luisa Cabezas"

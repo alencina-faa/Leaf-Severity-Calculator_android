@@ -42,8 +42,11 @@ class LeafSeverityCalculator(toga.App):
         self.photo = toga.ImageView(style=Pack(height=300, padding=5, flex=1))
         main_box.add(self.photo)
 
-        severity_button = toga.Button("Calcular la severidad", on_press=self.procesar_imagen, style=Pack(padding=5))
-        main_box.add(severity_button)
+        self.progress_label = toga.Label('', style=Pack(text_align='center'))
+        main_box.add(self.progress_label)
+
+        self.severity_button = toga.Button("Calcular la severidad", on_press=self.procesar_imagen, style=Pack(padding=5), enabled=False)
+        main_box.add(self.severity_button)
 
         self.result = toga.ImageView(style=Pack(height=300, padding=5, flex=1))
         main_box.add(self.result)
@@ -112,6 +115,8 @@ class LeafSeverityCalculator(toga.App):
 
     def inicio(self, widget):
         self.photo.image = None
+        self.progress_label.text = ""
+        self.severity_button.enabled = False
         self.result.image = None
         self.lbl_severidad.text = ""
     
@@ -143,6 +148,12 @@ class LeafSeverityCalculator(toga.App):
 
     async def take_photo(self, widget, **kwargs):
         import numpy as np
+        self.photo.image = None
+        self.progress_label.text = ""
+        self.severity_button.enabled = False
+        self.result.image = None
+        self.lbl_severidad.text = ""
+
         if self.processing:
             return
         try:
@@ -152,6 +163,9 @@ class LeafSeverityCalculator(toga.App):
             if image:
                 self.photo.image = image
                 self.img_original = image.as_format(Image.Image)
+
+                # Label indicando la corrección de fondo
+                self.progress_label.text = "Corrigiendo iluminación..."
 
                 # Procesar la corrección de fondo en segundo plano
                 self.processing = True
@@ -163,7 +177,12 @@ class LeafSeverityCalculator(toga.App):
                     # Actualizar con la imagen corregida
                     self.photo.image = toga.Image(Image.fromarray(image_corr))
                     self.img_original = Image.fromarray(image_corr)
-                
+
+                    # Label indicando corrección de fondo concluída
+                    self.progress_label.text = "Iluminación corregida"
+                    # Habilitar el botón de procesar imagen
+                    self.severity_button.enabled = True 
+
                 except Exception as e:
                     print(f"Error en corrección de fondo: {e}")
                 # Mantener la imagen original si falla la corrección
@@ -189,6 +208,7 @@ class LeafSeverityCalculator(toga.App):
                 self.result.image = toga.Image(src=processed_image)
                 self.severidad = severity
                 self.lbl_severidad.text = f"Severidad: {self.severidad:.2%}"
+                self.severity_button.enabled = False
         except Exception as e:
             await self.main_window.dialog(toga.InfoDialog("Error", f"Error al procesar la imagen: {str(e)}"))
         finally:
@@ -243,6 +263,12 @@ class LeafSeverityCalculator(toga.App):
 
     async def open_image(self, widget, **kwargs):
         import numpy as np
+        self.photo.image = None
+        self.progress_label.text = ""
+        self.severity_button.enabled = False
+        self.result.image = None
+        self.lbl_severidad.text = ""
+
         fb = UriFileBrowser()
         initial = "content://media/external/images/media"#"content://com.android.externalstorage.documents/document/camera"
         urilist = await fb.open_file_dialog("", file_types=["jpg"], initial_uri=initial, multiselect=False)
@@ -256,6 +282,9 @@ class LeafSeverityCalculator(toga.App):
         self.photo.image = toga.Image(bytesobj)
         self.img_original = toga.Image(bytesobj).as_format(Image.Image)
 
+        # Label indicando la corrección de fondo
+        self.progress_label.text = "Corrigiendo iluminación..."
+        
         # Procesar la corrección de fondo en segundo plano
         self.processing = True
         try:
@@ -266,6 +295,11 @@ class LeafSeverityCalculator(toga.App):
             # Actualizar con la imagen corregida
             self.photo.image = toga.Image(Image.fromarray(image_corr))
             self.img_original = Image.fromarray(image_corr)
+
+            # Label indicando corrección de fondo concluída
+            self.progress_label.text = "Iluminación corregida"
+            # Habilitar el botón de procesar imagen
+            self.severity_button.enabled = True
                 
         except Exception as e:
             print(f"Error en corrección de fondo: {e}")
