@@ -7,10 +7,10 @@ import io
 import os
 import time
 import sys
-import cv2
+import numpy as np
 from tatogalib.uri_io.urifilebrowser import UriFileBrowser
 from tatogalib.uri_io.urifile import UriFile
-from cv2_rolling_ball import subtract_background_rolling_ball
+from numpy_rolling_ball import subtract_background_rolling_ball
 
 
 class LeafSeverityCalculator(toga.App):
@@ -170,16 +170,25 @@ class LeafSeverityCalculator(toga.App):
                 # Procesar la corrección de fondo en segundo plano
                 self.processing = True
                 try:
-                    image_corr = await asyncio.get_event_loop().run_in_executor(
+                    result = await asyncio.get_event_loop().run_in_executor(
                                         None, self.extract_background_color, np.array(self.img_original)
                                     )
                 
+                    # extract_background_color now returns (image_corr, elapsed)
+                    if isinstance(result, tuple):
+                        image_corr, elapsed = result
+                    else:
+                        image_corr, elapsed = result, None
+
                     # Actualizar con la imagen corregida
                     self.photo.image = toga.Image(Image.fromarray(image_corr))
                     self.img_original = Image.fromarray(image_corr)
 
-                    # Label indicando corrección de fondo concluída
-                    self.progress_label.text = "Iluminación corregida"
+                    # Label indicando corrección de fondo concluída (mostrar tiempo si disponible)
+                    if elapsed is not None:
+                        self.progress_label.text = f"Iluminación corregida ({elapsed:.1f}s)"
+                    else:
+                        self.progress_label.text = "Iluminación corregida"
                     # Habilitar el botón de procesar imagen
                     self.severity_button.enabled = True 
 
@@ -223,18 +232,20 @@ class LeafSeverityCalculator(toga.App):
         return result
 
     def _process_image_opencv(self):
-        import numpy as np
         try:
+            # Ensure we have a NumPy array in RGB order
             img_np = np.array(self.img_original)
-            img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-            img_resized = self._resize_image(img_cv, 800)
 
-            b, g, r = cv2.split(img_resized)
-            r = r.astype(np.float32)
-            g = g.astype(np.float32)
+            # Resize image to a reasonable maximum dimension (preserve channels)
+            img_resized = self._resize_image_numpy(img_np, 800)
+
+            # Extract channels (assume RGB input)
+            r = img_resized[..., 0].astype(np.float32)
+            g = img_resized[..., 1].astype(np.float32)
+            b = img_resized[..., 2]
 
             epsilon = 1e-10
-            indice = cv2.divide(g - r, g + r + epsilon)
+            indice = (g - r) / (g + r + epsilon)
 
             mascara_hojas = b <= self.ub_inicial
             mascara_enferma = np.logical_and(indice <= self.ui_inicial, mascara_hojas)
@@ -242,24 +253,49 @@ class LeafSeverityCalculator(toga.App):
 
             severity = np.sum(mascara_enferma) / max(np.sum(mascara_hojas), 1)
 
+            # Prepare output image (RGB)
             img_resultado = np.zeros_like(img_resized)
             img_resultado[mascara_sana] = [0, 255, 0]
-            img_resultado[mascara_enferma] = [0, 0, 255]
+            img_resultado[mascara_enferma] = [255, 0, 0]  # red in RGB
 
-            img_rgb = cv2.cvtColor(img_resultado, cv2.COLOR_BGR2RGB)
-            result_image = Image.fromarray(img_rgb)
-
+            result_image = Image.fromarray(img_resultado.astype('uint8'))
             return result_image, severity
         except Exception as e:
-            print(f"Error in OpenCV processing: {e}")
+            print(f"Error in NumPy processing: {e}")
             return None
 
     def _resize_image(self, img, max_dim):
+        # kept for backward compatibility but delegate to numpy implementation
+        return self._resize_image_numpy(img, max_dim)
+
+    def _resize_image_numpy(self, img, max_dim):
+        # img: HxWxC numpy array
         height, width = img.shape[:2]
         scale = min(max_dim / width, max_dim / height)
-        new_width = int(width * scale)
-        new_height = int(height * scale)
-        return cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+        if scale >= 1.0:
+            return img
+        new_width = max(int(width * scale), 1)
+        new_height = max(int(height * scale), 1)
+        return self._resize_with_pillow(img, new_width, new_height)
+
+    def _resize_with_pillow(self, img, new_w, new_h):
+        """Resize a numpy array or PIL Image using Pillow Lanczos resampling and return a numpy array.
+
+        new_w, new_h are integers (width, height).
+        """
+        # If input is a numpy array, convert to PIL Image first
+        if not isinstance(img, Image.Image):
+            pil = Image.fromarray(img)
+        else:
+            pil = img
+
+        # Pillow expects size as (width, height)
+        resized = pil.resize((new_w, new_h), resample=Image.Resampling.LANCZOS)
+        arr = np.array(resized)
+        # Ensure uint8 output
+        if arr.dtype != np.uint8:
+            arr = arr.astype(np.uint8)
+        return arr
 
     async def open_image(self, widget, **kwargs):
         import numpy as np
@@ -288,16 +324,24 @@ class LeafSeverityCalculator(toga.App):
         # Procesar la corrección de fondo en segundo plano
         self.processing = True
         try:
-            image_corr = await asyncio.get_event_loop().run_in_executor(
+            result = await asyncio.get_event_loop().run_in_executor(
                             None, self.extract_background_color, np.array(self.img_original)
                                     )
                 
+            if isinstance(result, tuple):
+                image_corr, elapsed = result
+            else:
+                image_corr, elapsed = result, None
+
             # Actualizar con la imagen corregida
             self.photo.image = toga.Image(Image.fromarray(image_corr))
             self.img_original = Image.fromarray(image_corr)
 
             # Label indicando corrección de fondo concluída
-            self.progress_label.text = "Iluminación corregida"
+            if elapsed is not None:
+                self.progress_label.text = f"Iluminación corregida ({elapsed:.1f}s)"
+            else:
+                self.progress_label.text = "Iluminación corregida"
             # Habilitar el botón de procesar imagen
             self.severity_button.enabled = True
                 
@@ -314,17 +358,37 @@ class LeafSeverityCalculator(toga.App):
     def extract_background_color(self, image_rgb_original):
         RESIZE_FACTOR = 0.1
         ROLLING_RADIUS = 101
-        image_rgb_small = cv2.resize(image_rgb_original, None, fx=RESIZE_FACTOR, fy=RESIZE_FACTOR, interpolation=cv2.INTER_AREA)
+        # measure elapsed time for diagnostics
+        t0 = time.time()
 
-        b, g, r = cv2.split(image_rgb_small)
-        _, b_background = subtract_background_rolling_ball(b, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=True)
-        _, g_background = subtract_background_rolling_ball(g, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=True)
-        _, r_background = subtract_background_rolling_ball(r, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=True)
+        # Resize using our numpy resize (via Pillow)
+        small_w = max(int(image_rgb_original.shape[1] * RESIZE_FACTOR), 1)
+        small_h = max(int(image_rgb_original.shape[0] * RESIZE_FACTOR), 1)
+        image_rgb_small = self._resize_with_pillow(image_rgb_original, small_w, small_h)
 
-        background_rgb_small = cv2.merge([b_background, g_background, r_background])
-        background_rgb_full = cv2.resize(background_rgb_small, (image_rgb_original.shape[1], image_rgb_original.shape[0]), interpolation=cv2.INTER_CUBIC)
-        image_corrected_rgb_full = cv2.subtract(background_rgb_full, image_rgb_original)
-        return cv2.bitwise_not(image_corrected_rgb_full)
+        # split channels (assume HxWx3)
+        b = image_rgb_small[..., 2] if image_rgb_small.ndim == 3 else image_rgb_small
+        g = image_rgb_small[..., 1] if image_rgb_small.ndim == 3 else image_rgb_small
+        r = image_rgb_small[..., 0] if image_rgb_small.ndim == 3 else image_rgb_small
+
+        # Disable presmooth due to an issue in the smoothing routine of numpy_rolling_ball
+        # (presmooth changes array shape in some versions). This also improves speed.
+        _, b_background = subtract_background_rolling_ball(b, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
+        _, g_background = subtract_background_rolling_ball(g, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
+        _, r_background = subtract_background_rolling_ball(r, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
+
+        # merge backgrounds back to small rgb (we'll keep RGB order)
+        background_rgb_small = np.stack([r_background, g_background, b_background], axis=-1)
+
+        # resize background to full size and subtract
+        background_rgb_full = self._resize_with_pillow(background_rgb_small, image_rgb_original.shape[1], image_rgb_original.shape[0])
+        image_corrected_rgb_full = background_rgb_full.astype(np.int16) - image_rgb_original.astype(np.int16)
+        image_corrected_rgb_full = np.clip(image_corrected_rgb_full, 0, 255).astype(np.uint8)
+        # invert (bitwise_not equivalent)
+        corrected = 255 - image_corrected_rgb_full
+
+        elapsed = time.time() - t0
+        return corrected, elapsed
 
     async def guardar_imagen(self, widget, **kwargs):
         if self.img_procesada is None:

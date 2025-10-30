@@ -2,16 +2,14 @@
 [tool.briefcase]
 project_name = "LeafSeverityCalculator"
 bundle = "ar.edu.unicen.faa"
-version = "0.0.7"
+version = "0.0.8"
 url = "https://faa.unicen.edu.ar/leafseveritycalculator"
 license.file = "LICENSE"
 author = "Emiliano David, Alberto Lencina, Luisa Cabezas"
 author_email = "alencina@azul.faa.unicen.edu.ar"
 
 requires = [
-    "toga-core",
-    "Pillow",
-    "opencv-rolling-ball",
+   
 ]
 
 [tool.briefcase.app.leafseveritycalculator]
@@ -168,7 +166,6 @@ flatpak_sdk = "org.gnome.Sdk"
 [tool.briefcase.app.leafseveritycalculator.windows]
 requires = [
     "toga-winforms~=0.4.5",
-    "opencv-python-headless>=4.5.0",
 ]
 
 # Mobile deployments
@@ -181,9 +178,10 @@ requires = [
 [tool.briefcase.app.leafseveritycalculator.android]
 requires = [
     "toga-android~=0.4.5",
-    "../wheels/numpy-1.19.5-0-cp38-cp38-android_21_arm64_v8a.whl",
-    "../wheels/opencv_python-4.5.1.48-1-cp38-cp38-android_21_arm64_v8a.whl",
+    "../wheels/numpy-1.26.2-0-cp312-cp312-android_21_arm64_v8a.whl",
     "../wheels/tatogalib-0.9.6-py3-none-any.whl",
+    "../wheels/numpy_rolling_ball-1.0.0-py3-none-any.whl",
+    "../wheels/pillow-11.0.0-0-cp312-cp312-android_24_arm64_v8a.whl",
 ]
 
 build_gradle_extra_content = """\
