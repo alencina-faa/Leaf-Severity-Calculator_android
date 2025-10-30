@@ -179,9 +179,11 @@ requires = [
 requires = [
     "toga-android~=0.4.5",
     "../wheels/numpy-1.26.2-0-cp312-cp312-android_21_arm64_v8a.whl",
+    "../wheels/numpy-1.26.2-0-cp312-cp312-android_21_x86_64.whl",
     "../wheels/tatogalib-0.9.6-py3-none-any.whl",
     "../wheels/numpy_rolling_ball-1.0.0-py3-none-any.whl",
     "../wheels/pillow-11.0.0-0-cp312-cp312-android_24_arm64_v8a.whl",
+    "../wheels/pillow-11.0.0-0-cp312-cp312-android_24_x86_64.whl",
 ]
 
 build_gradle_extra_content = """\
@@ -202,11 +204,11 @@ android {
 
             // Enables code shrinking, obfuscation, and optimization for only
             // your project's release build type.
-//            minifyEnabled true
+            minifyEnabled true
 
             // Enables resource shrinking, which is performed by the
             // Android Gradle plugin.
-//            shrinkResources true
+            shrinkResources true
 
             // Includes the default ProGuard rules files that are packaged with
             // the Android Gradle plugin. To learn more, go to the section about
@@ -216,9 +218,9 @@ android {
                    'proguard-rules.pro'
 
             // at android_gradle_app_build_intermediates_merged_native_libs_release_out_lib
-//            ndk {
-//                debugSymbolLevel 'FULL'
-//            }
+            ndk {
+                debugSymbolLevel 'FULL'
+            }
         }
     }
 }
