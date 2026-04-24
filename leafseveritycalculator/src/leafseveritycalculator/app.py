@@ -236,8 +236,8 @@ class LeafSeverityCalculator(toga.App):
             # Ensure we have a NumPy array in RGB order
             img_np = np.array(self.img_original)
 
-            # Resize image to a reasonable maximum dimension (preserve channels)
-            img_resized = self._resize_image_numpy(img_np, 800)
+            # Resize image to the common processing target size.
+            img_resized = self._resize_image_numpy(img_np, 800, 600)
 
             # Extract channels (assume RGB input)
             r = img_resized[..., 0].astype(np.float32)
@@ -264,19 +264,12 @@ class LeafSeverityCalculator(toga.App):
             print(f"Error in NumPy processing: {e}")
             return None
 
-    def _resize_image(self, img, max_dim):
+    def _resize_image(self, img, target_width=800, target_height=600):
         # kept for backward compatibility but delegate to numpy implementation
-        return self._resize_image_numpy(img, max_dim)
+        return self._resize_image_numpy(img, target_width, target_height)
 
-    def _resize_image_numpy(self, img, max_dim):
-        # img: HxWxC numpy array
-        height, width = img.shape[:2]
-        scale = min(max_dim / width, max_dim / height)
-        if scale >= 1.0:
-            return img
-        new_width = max(int(width * scale), 1)
-        new_height = max(int(height * scale), 1)
-        return self._resize_with_pillow(img, new_width, new_height)
+    def _resize_image_numpy(self, img, target_width=800, target_height=600):
+        return self._resize_with_pillow(img, target_width, target_height)
 
     def _resize_with_pillow(self, img, new_w, new_h):
         """Resize a numpy array or PIL Image using Pillow Lanczos resampling and return a numpy array.

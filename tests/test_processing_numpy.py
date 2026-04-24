@@ -31,17 +31,17 @@ def test_numpy_processing_returns_image_and_severity_range():
     assert 0.0 <= float(severity) <= 1.0
 
     processed_arr = np.array(processed_img)
-    assert np.array_equal(processed_arr[60, 110], np.array([0, 255, 0], dtype=np.uint8))
-    assert np.array_equal(processed_arr[220, 300], np.array([255, 0, 0], dtype=np.uint8))
-    assert np.array_equal(processed_arr[10, 10], np.array([0, 0, 0], dtype=np.uint8))
+    assert np.array_equal(processed_arr[120, 220], np.array([0, 255, 0], dtype=np.uint8))
+    assert np.array_equal(processed_arr[440, 600], np.array([255, 0, 0], dtype=np.uint8))
+    assert np.array_equal(processed_arr[20, 20], np.array([0, 0, 0], dtype=np.uint8))
 
 
-def test_numpy_resize_respects_max_dimension():
+def test_numpy_resize_matches_processing_target_size():
     app = _build_app()
     arr = np.zeros((300, 400, 3), dtype=np.uint8)
 
-    small = app._resize_image_numpy(arr, 100)
-    assert max(small.shape[:2]) <= 100
+    resized = app._resize_image_numpy(arr, 800, 600)
+    assert resized.shape == (600, 800, 3)
 
 
 def test_detailed_processing_uses_cache():

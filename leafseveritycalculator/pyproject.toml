@@ -9,7 +9,10 @@ author = "Emiliano David, Alberto Lencina, Luisa Cabezas"
 author_email = "alencina@azul.faa.unicen.edu.ar"
 
 requires = [
-   
+    "toga-core",
+    "numpy>=1.26,<2",
+    "Pillow>=11,<12",
+    "numpy-rolling-ball>=1,<2",
 ]
 
 [tool.briefcase.app.leafseveritycalculator]
