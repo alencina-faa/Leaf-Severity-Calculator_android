@@ -192,12 +192,17 @@ requires = [
 [tool.briefcase.app.leafseveritycalculator.android]
 requires = [
     "toga-android~=0.4.5",
-    "../wheels/numpy-1.19.5-0-cp38-cp38-android_16_armeabi_v7a.whl",
+    # NumPy & OpenCV wheels - organized by ABI for explicit matching
+    # ARM64-v8a (API 21)
     "../wheels/numpy-1.19.5-0-cp38-cp38-android_21_arm64_v8a.whl",
-    "../wheels/numpy-1.19.5-0-cp38-cp38-android_21_x86_64.whl",
-    "../wheels/opencv_python-4.5.1.48-1-cp38-cp38-android_16_armeabi_v7a.whl",
     "../wheels/opencv_python-4.5.1.48-1-cp38-cp38-android_21_arm64_v8a.whl",
+    # ARMv7a (API 16)
+    "../wheels/numpy-1.19.5-0-cp38-cp38-android_16_armeabi_v7a.whl",
+    "../wheels/opencv_python-4.5.1.48-1-cp38-cp38-android_16_armeabi_v7a.whl",
+    # x86_64 (API 21)
+    "../wheels/numpy-1.19.5-0-cp38-cp38-android_21_x86_64.whl",
     "../wheels/opencv_python-4.5.1.48-1-cp38-cp38-android_21_x86_64.whl",
+    # Universal wheels
     "../wheels/tatogalib-0.9.6-py3-none-any.whl",
     "opencv-rolling-ball",
 ]
