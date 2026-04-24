@@ -2,8 +2,6 @@ import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW, BOTTOM, CENTER
 import asyncio
-from PIL import Image
-import io
 import os
 import time
 import sys
@@ -162,7 +160,9 @@ class LeafSeverityCalculator(toga.App):
             image = await self.camera.take_photo()
             if image:
                 self.photo.image = image
-                self.img_original = image.as_format(Image.Image)
+                img_bytes = image.as_format(bytes)
+                img_array = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
+                self.img_original = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
 
                 # Label indicando la corrección de fondo
                 self.progress_label.text = "Corrigiendo iluminación..."
@@ -170,16 +170,25 @@ class LeafSeverityCalculator(toga.App):
                 # Procesar la corrección de fondo en segundo plano
                 self.processing = True
                 try:
-                    image_corr = await asyncio.get_event_loop().run_in_executor(
+                    result = await asyncio.get_event_loop().run_in_executor(
                                         None, self.extract_background_color, np.array(self.img_original)
                                     )
-                
-                    # Actualizar con la imagen corregida
-                    self.photo.image = toga.Image(Image.fromarray(image_corr))
-                    self.img_original = Image.fromarray(image_corr)
 
-                    # Label indicando corrección de fondo concluída
-                    self.progress_label.text = "Iluminación corregida"
+                    if isinstance(result, tuple):
+                        image_corr, elapsed = result
+                    else:
+                        image_corr, elapsed = result, None
+
+                    # Actualizar con la imagen corregida
+                    _, png_buf = cv2.imencode('.png', cv2.cvtColor(image_corr, cv2.COLOR_RGB2BGR))
+                    self.photo.image = toga.Image(png_buf.tobytes())
+                    self.img_original = image_corr
+
+                    # Label indicando corrección de fondo concluída (mostrar tiempo si disponible)
+                    if elapsed is not None:
+                        self.progress_label.text = f"Iluminación corregida ({elapsed:.1f}s)"
+                    else:
+                        self.progress_label.text = "Iluminación corregida"
                     # Habilitar el botón de procesar imagen
                     self.severity_button.enabled = True 
 
@@ -227,7 +236,7 @@ class LeafSeverityCalculator(toga.App):
         try:
             img_np = np.array(self.img_original)
             img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-            img_resized = self._resize_image(img_cv, 800)
+            img_resized = self._resize_image(img_cv, 800, 600)
 
             b, g, r = cv2.split(img_resized)
             r = r.astype(np.float32)
@@ -246,20 +255,14 @@ class LeafSeverityCalculator(toga.App):
             img_resultado[mascara_sana] = [0, 255, 0]
             img_resultado[mascara_enferma] = [0, 0, 255]
 
-            img_rgb = cv2.cvtColor(img_resultado, cv2.COLOR_BGR2RGB)
-            result_image = Image.fromarray(img_rgb)
-
-            return result_image, severity
+            _, png_buf = cv2.imencode('.png', img_resultado)
+            return png_buf.tobytes(), severity
         except Exception as e:
             print(f"Error in OpenCV processing: {e}")
             return None
 
-    def _resize_image(self, img, max_dim):
-        height, width = img.shape[:2]
-        scale = min(max_dim / width, max_dim / height)
-        new_width = int(width * scale)
-        new_height = int(height * scale)
-        return cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    def _resize_image(self, img, target_width=800, target_height=600):
+        return cv2.resize(img, (target_width, target_height), interpolation=cv2.INTER_AREA)
 
     async def open_image(self, widget, **kwargs):
         import numpy as np
@@ -280,7 +283,8 @@ class LeafSeverityCalculator(toga.App):
         
 
         self.photo.image = toga.Image(bytesobj)
-        self.img_original = toga.Image(bytesobj).as_format(Image.Image)
+        img_array = cv2.imdecode(np.frombuffer(bytesobj, np.uint8), cv2.IMREAD_COLOR)
+        self.img_original = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
 
         # Label indicando la corrección de fondo
         self.progress_label.text = "Corrigiendo iluminación..."
@@ -288,16 +292,25 @@ class LeafSeverityCalculator(toga.App):
         # Procesar la corrección de fondo en segundo plano
         self.processing = True
         try:
-            image_corr = await asyncio.get_event_loop().run_in_executor(
+            result = await asyncio.get_event_loop().run_in_executor(
                             None, self.extract_background_color, np.array(self.img_original)
                                     )
-                
+
+            if isinstance(result, tuple):
+                image_corr, elapsed = result
+            else:
+                image_corr, elapsed = result, None
+
             # Actualizar con la imagen corregida
-            self.photo.image = toga.Image(Image.fromarray(image_corr))
-            self.img_original = Image.fromarray(image_corr)
+            _, png_buf = cv2.imencode('.png', cv2.cvtColor(image_corr, cv2.COLOR_RGB2BGR))
+            self.photo.image = toga.Image(png_buf.tobytes())
+            self.img_original = image_corr
 
             # Label indicando corrección de fondo concluída
-            self.progress_label.text = "Iluminación corregida"
+            if elapsed is not None:
+                self.progress_label.text = f"Iluminación corregida ({elapsed:.1f}s)"
+            else:
+                self.progress_label.text = "Iluminación corregida"
             # Habilitar el botón de procesar imagen
             self.severity_button.enabled = True
                 
@@ -314,17 +327,22 @@ class LeafSeverityCalculator(toga.App):
     def extract_background_color(self, image_rgb_original):
         RESIZE_FACTOR = 0.1
         ROLLING_RADIUS = 101
+        t0 = time.time()
+
         image_rgb_small = cv2.resize(image_rgb_original, None, fx=RESIZE_FACTOR, fy=RESIZE_FACTOR, interpolation=cv2.INTER_AREA)
 
         b, g, r = cv2.split(image_rgb_small)
-        _, b_background = subtract_background_rolling_ball(b, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=True)
-        _, g_background = subtract_background_rolling_ball(g, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=True)
-        _, r_background = subtract_background_rolling_ball(r, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=True)
+        _, b_background = subtract_background_rolling_ball(b, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
+        _, g_background = subtract_background_rolling_ball(g, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
+        _, r_background = subtract_background_rolling_ball(r, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
 
         background_rgb_small = cv2.merge([b_background, g_background, r_background])
         background_rgb_full = cv2.resize(background_rgb_small, (image_rgb_original.shape[1], image_rgb_original.shape[0]), interpolation=cv2.INTER_CUBIC)
         image_corrected_rgb_full = cv2.subtract(background_rgb_full, image_rgb_original)
-        return cv2.bitwise_not(image_corrected_rgb_full)
+        corrected = cv2.bitwise_not(image_corrected_rgb_full)
+
+        elapsed = time.time() - t0
+        return corrected, elapsed
 
     async def guardar_imagen(self, widget, **kwargs):
         if self.img_procesada is None:
@@ -335,10 +353,8 @@ class LeafSeverityCalculator(toga.App):
             os.makedirs(save_dir, exist_ok=True)
             timestamp = time.strftime("%Y%m%d")
             file_path = os.path.join(save_dir, f"{timestamp}_Severidad_{self.severidad:.2%}.png")
-            output_bytes = io.BytesIO()
-            self.img_procesada.save(output_bytes, format="PNG")
             with open(file_path, "wb") as f:
-                f.write(output_bytes.getvalue())
+                f.write(self.img_procesada)
             await self.main_window.dialog(toga.InfoDialog("Éxito", f"Imagen guardada en:\n{file_path}"))
         except Exception as e:
             await self.main_window.dialog(toga.InfoDialog("Error", f"No se pudo guardar la imagen: {str(e)}"))

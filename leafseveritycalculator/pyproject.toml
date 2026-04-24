@@ -1,4 +1,6 @@
 # This project was generated with 0.3.19 using template: https://github.com/beeware/briefcase-template@v0.3.19
+# OpenCV-based branch: keep this branch aligned with the older Android cp38/OpenCV stack.
+# The Android wheels below are the source of that older Python/packaging constraint.
 [tool.briefcase]
 project_name = "LeafSeverityCalculator"
 bundle = "ar.edu.unicen.faa"
@@ -10,7 +12,8 @@ author_email = "alencina@azul.faa.unicen.edu.ar"
 
 requires = [
     "toga-core",
-    "Pillow",
+    "numpy<2",
+    "opencv-python-headless>=4.5,<5",
     "opencv-rolling-ball",
 ]
 
@@ -168,7 +171,6 @@ flatpak_sdk = "org.gnome.Sdk"
 [tool.briefcase.app.leafseveritycalculator.windows]
 requires = [
     "toga-winforms~=0.4.5",
-    "opencv-python-headless>=4.5.0",
 ]
 
 # Mobile deployments
@@ -204,11 +206,11 @@ android {
 
             // Enables code shrinking, obfuscation, and optimization for only
             // your project's release build type.
-//            minifyEnabled true
+            minifyEnabled true
 
             // Enables resource shrinking, which is performed by the
             // Android Gradle plugin.
-//            shrinkResources true
+            shrinkResources true
 
             // Includes the default ProGuard rules files that are packaged with
             // the Android Gradle plugin. To learn more, go to the section about
@@ -218,9 +220,9 @@ android {
                    'proguard-rules.pro'
 
             // at android_gradle_app_build_intermediates_merged_native_libs_release_out_lib
-//            ndk {
-//                debugSymbolLevel 'FULL'
-//            }
+            ndk {
+                debugSymbolLevel 'FULL'
+            }
         }
     }
 }

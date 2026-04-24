@@ -192,6 +192,22 @@ def install_test_stubs():
         def bitwise_not(a):
             return 255 - a
 
+        def imencode(ext, img, params=None):
+            import io as _io
+            # cv2 images are BGR; PNG/JPEG files are RGB — swap channels like real cv2 does
+            img_rgb = img[..., ::-1] if img.ndim == 3 and img.shape[2] == 3 else img
+            pil_img = PILImage.fromarray(img_rgb)
+            fmt = "PNG" if ext.lower() in (".png",) else "JPEG"
+            buf = _io.BytesIO()
+            pil_img.save(buf, format=fmt)
+            return True, np.frombuffer(buf.getvalue(), dtype=np.uint8)
+
+        def imdecode(buf, flags):
+            import io as _io
+            pil_img = PILImage.open(_io.BytesIO(bytes(buf)))
+            return np.array(pil_img)
+
+        cv2.IMREAD_COLOR = 1
         cv2.cvtColor = cvtColor
         cv2.split = split
         cv2.divide = divide
@@ -199,6 +215,8 @@ def install_test_stubs():
         cv2.merge = merge
         cv2.subtract = subtract
         cv2.bitwise_not = bitwise_not
+        cv2.imencode = imencode
+        cv2.imdecode = imdecode
         sys.modules["cv2"] = cv2
 
 

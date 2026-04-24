@@ -113,7 +113,10 @@ def test_guardar_imagen_writes_png_and_reports_success():
     app = build_app()
     app.startup()
     module = load_app_module()
-    app.img_procesada = PILImage.new("RGB", (4, 4), color=(0, 255, 0))
+    import io as _io
+    _buf = _io.BytesIO()
+    PILImage.new("RGB", (4, 4), color=(0, 255, 0)).save(_buf, format="PNG")
+    app.img_procesada = _buf.getvalue()
     app.severidad = 0.25
 
     written = {"path": None, "data": b"", "makedirs": None}
