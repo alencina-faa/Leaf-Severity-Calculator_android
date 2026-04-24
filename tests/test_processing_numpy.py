@@ -1,69 +1,17 @@
-import importlib
 import os
 import sys
-import types
 
 import numpy as np
 from PIL import Image
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "leafseveritycalculator")))
 
-
-def _install_test_stubs():
-    if "toga" not in sys.modules:
-        toga = types.ModuleType("toga")
-
-        class DummyApp:
-            pass
-
-        toga.App = DummyApp
-        style_mod = types.ModuleType("toga.style")
-        style_mod.Pack = lambda *args, **kwargs: None
-        style_pack_mod = types.ModuleType("toga.style.pack")
-        style_pack_mod.COLUMN = "COLUMN"
-        style_pack_mod.ROW = "ROW"
-        style_pack_mod.BOTTOM = "BOTTOM"
-        style_pack_mod.CENTER = "CENTER"
-        sys.modules["toga"] = toga
-        sys.modules["toga.style"] = style_mod
-        sys.modules["toga.style.pack"] = style_pack_mod
-
-    if "tatogalib.uri_io.urifilebrowser" not in sys.modules:
-        tatogalib = types.ModuleType("tatogalib")
-        uri_io = types.ModuleType("tatogalib.uri_io")
-        urifilebrowser = types.ModuleType("tatogalib.uri_io.urifilebrowser")
-        urifile = types.ModuleType("tatogalib.uri_io.urifile")
-
-        class UriFileBrowser:
-            async def open_file_dialog(self, *args, **kwargs):
-                return []
-
-        class UriFile:
-            def __init__(self, *args, **kwargs):
-                pass
-
-        urifilebrowser.UriFileBrowser = UriFileBrowser
-        urifile.UriFile = UriFile
-        sys.modules["tatogalib"] = tatogalib
-        sys.modules["tatogalib.uri_io"] = uri_io
-        sys.modules["tatogalib.uri_io.urifilebrowser"] = urifilebrowser
-        sys.modules["tatogalib.uri_io.urifile"] = urifile
-
-    if "numpy_rolling_ball" not in sys.modules:
-        numpy_rolling_ball = types.ModuleType("numpy_rolling_ball")
-
-        def subtract_background_rolling_ball(arr, *args, **kwargs):
-            return arr, np.zeros_like(arr)
-
-        numpy_rolling_ball.subtract_background_rolling_ball = subtract_background_rolling_ball
-        sys.modules["numpy_rolling_ball"] = numpy_rolling_ball
+from tests._support import build_app
 
 
 def _build_app():
-    _install_test_stubs()
-    module = importlib.import_module("leafseveritycalculator.src.leafseveritycalculator.app")
-    cls = module.LeafSeverityCalculator
-    app = cls.__new__(cls)
+    app = build_app()
     app.ui_inicial = -0.03365811811
     app.ub_inicial = 185
     app.cache = {}
