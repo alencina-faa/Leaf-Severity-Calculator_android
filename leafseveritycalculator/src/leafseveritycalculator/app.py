@@ -23,7 +23,7 @@ class LeafSeverityCalculator(toga.App):
         self.processing = False
         self.cache = {}
 
-        self.main_window = toga.MainWindow(title="Calculadora de Severidad de Hojas")
+        self.main_window = toga.MainWindow(title="Leaf Severity Calculator")
         self.main_window.show()
 
         main_box = toga.Box(style=Pack(direction=COLUMN, padding=2, background_color='white', flex=1))
@@ -33,10 +33,10 @@ class LeafSeverityCalculator(toga.App):
         buttons_box = toga.Box(style=Pack(direction=ROW, padding=2, background_color='white'))
         main_box.add(buttons_box)
 
-        camera_button = toga.Button("Tomar una foto", on_press=self.take_photo, style=Pack(padding=5, flex=1))
+        camera_button = toga.Button("Take a Photo", on_press=self.take_photo, style=Pack(padding=5, flex=1))
         buttons_box.add(camera_button)
 
-        gallery_image_button = toga.Button("Seleccionar una imagen", on_press=self.open_image, style=Pack(padding=5, flex=1))
+        gallery_image_button = toga.Button("Select an Image", on_press=self.open_image, style=Pack(padding=5, flex=1))
         buttons_box.add(gallery_image_button)
 
         self.photo = toga.ImageView(style=Pack(height=300, padding=5, flex=1))
@@ -45,7 +45,7 @@ class LeafSeverityCalculator(toga.App):
         self.progress_label = toga.Label('', style=Pack(text_align='center'))
         main_box.add(self.progress_label)
 
-        self.severity_button = toga.Button("Calcular la severidad", on_press=self.procesar_imagen, style=Pack(padding=5), enabled=False)
+        self.severity_button = toga.Button("Calculate Severity", on_press=self.procesar_imagen, style=Pack(padding=5), enabled=False)
         main_box.add(self.severity_button)
 
         self.result = toga.ImageView(style=Pack(height=300, padding=5, flex=1))
@@ -54,7 +54,7 @@ class LeafSeverityCalculator(toga.App):
         self.lbl_severidad = toga.Label("", style=Pack(flex=1, font_size=18, font_weight='bold', text_align='center'))
         main_box.add(self.lbl_severidad)
 
-        # Caja horizontal de íconos con fondo blanco
+        # Horizontal box of icons with white background
         iconos_box = toga.Box(style=Pack(direction=ROW, background_color='white', padding=10, alignment=BOTTOM, flex=1))
 
         icono_inicio = toga.Button(icon="resources/iconohome.png", on_press=self.inicio, 
@@ -87,7 +87,7 @@ class LeafSeverityCalculator(toga.App):
 
         main_box.add(iconos_box)
 
-        # Logos institucionales grandes
+        # Large institutional logos
         logos_row = toga.Box(style=Pack(direction=ROW, padding=5, background_color='#f0f0f0', 
                                         flex=1, alignment=BOTTOM, height=70))
 
@@ -135,7 +135,7 @@ class LeafSeverityCalculator(toga.App):
 
 
     async def salir(self, widget):
-        result = await self.main_window.confirm_dialog("Confirmar salida", "¿Deseas cerrar la aplicación?")
+        result = await self.main_window.confirm_dialog("Confirm Exit", "Do you want to close the application?")
         if result:
             import os
             import platform
@@ -164,8 +164,8 @@ class LeafSeverityCalculator(toga.App):
                 self.photo.image = image
                 self.img_original = image.as_format(Image.Image)
 
-                # Label indicando la corrección de fondo
-                self.progress_label.text = "Corrigiendo iluminación..."
+                # Label indicating background correction
+                self.progress_label.text = "Correcting illumination..."
 
                 # Procesar la corrección de fondo en segundo plano
                 self.processing = True
@@ -184,17 +184,17 @@ class LeafSeverityCalculator(toga.App):
                     self.photo.image = toga.Image(Image.fromarray(image_corr))
                     self.img_original = Image.fromarray(image_corr)
 
-                    # Label indicando corrección de fondo concluída (mostrar tiempo si disponible)
+                    # Label indicating background correction completed (show time if available)
                     if elapsed is not None:
-                        self.progress_label.text = f"Iluminación corregida ({elapsed:.1f}s)"
+                        self.progress_label.text = f"Illumination corrected ({elapsed:.1f}s)"
                     else:
-                        self.progress_label.text = "Iluminación corregida"
-                    # Habilitar el botón de procesar imagen
+                        self.progress_label.text = "Illumination corrected"
+                    # Enable the process image button
                     self.severity_button.enabled = True 
 
                 except Exception as e:
-                    print(f"Error en corrección de fondo: {e}")
-                # Mantener la imagen original si falla la corrección
+                    print(f"Error in background correction: {e}")
+                # Keep the original image if correction fails
                 finally:
                     self.processing = False
                 
@@ -216,10 +216,10 @@ class LeafSeverityCalculator(toga.App):
                 self.img_procesada = processed_image
                 self.result.image = toga.Image(src=processed_image)
                 self.severidad = severity
-                self.lbl_severidad.text = f"Severidad: {self.severidad:.2%}"
+                self.lbl_severidad.text = f"Severity: {self.severidad:.2%}"
                 self.severity_button.enabled = False
         except Exception as e:
-            await self.main_window.dialog(toga.InfoDialog("Error", f"Error al procesar la imagen: {str(e)}"))
+            await self.main_window.dialog(toga.InfoDialog("Error", f"Error processing image: {str(e)}"))
         finally:
             self.processing = False
 
@@ -311,10 +311,10 @@ class LeafSeverityCalculator(toga.App):
         self.photo.image = toga.Image(bytesobj)
         self.img_original = toga.Image(bytesobj).as_format(Image.Image)
 
-        # Label indicando la corrección de fondo
-        self.progress_label.text = "Corrigiendo iluminación..."
+        # Label indicating background correction
+        self.progress_label.text = "Correcting illumination..."
         
-        # Procesar la corrección de fondo en segundo plano
+        # Process background correction in the background
         self.processing = True
         try:
             result = await asyncio.get_event_loop().run_in_executor(
@@ -326,21 +326,21 @@ class LeafSeverityCalculator(toga.App):
             else:
                 image_corr, elapsed = result, None
 
-            # Actualizar con la imagen corregida
+            # Update with corrected image
             self.photo.image = toga.Image(Image.fromarray(image_corr))
             self.img_original = Image.fromarray(image_corr)
 
-            # Label indicando corrección de fondo concluída
+            # Label indicating background correction completed
             if elapsed is not None:
-                self.progress_label.text = f"Iluminación corregida ({elapsed:.1f}s)"
+                self.progress_label.text = f"Illumination corrected ({elapsed:.1f}s)"
             else:
-                self.progress_label.text = "Iluminación corregida"
-            # Habilitar el botón de procesar imagen
+                self.progress_label.text = "Illumination corrected"
+            # Enable the process image button
             self.severity_button.enabled = True
                 
         except Exception as e:
-            print(f"Error en corrección de fondo: {e}")
-            # Mantener la imagen original si falla la corrección
+            print(f"Error in background correction: {e}")
+            # Keep the original image if correction fails
         finally:
             self.processing = False
 
@@ -385,20 +385,20 @@ class LeafSeverityCalculator(toga.App):
 
     async def guardar_imagen(self, widget, **kwargs):
         if self.img_procesada is None:
-            await self.main_window.dialog(toga.InfoDialog("Advertencia", "No hay imagen procesada para guardar."))
+            await self.main_window.dialog(toga.InfoDialog("Warning", "No processed image to save."))
             return
         try:
             save_dir = "/sdcard/Download/LeafSeverityImages"
             os.makedirs(save_dir, exist_ok=True)
             timestamp = time.strftime("%Y%m%d")
-            file_path = os.path.join(save_dir, f"{timestamp}_Severidad_{self.severidad:.2%}.png")
+            file_path = os.path.join(save_dir, f"{timestamp}_Severity_{self.severidad:.2%}.png")
             output_bytes = io.BytesIO()
             self.img_procesada.save(output_bytes, format="PNG")
             with open(file_path, "wb") as f:
                 f.write(output_bytes.getvalue())
-            await self.main_window.dialog(toga.InfoDialog("Éxito", f"Imagen guardada en:\n{file_path}"))
+            await self.main_window.dialog(toga.InfoDialog("Success", f"Image saved to:\n{file_path}"))
         except Exception as e:
-            await self.main_window.dialog(toga.InfoDialog("Error", f"No se pudo guardar la imagen: {str(e)}"))
+            await self.main_window.dialog(toga.InfoDialog("Error", f"Failed to save image: {str(e)}"))
 
 def main():
     return LeafSeverityCalculator()
