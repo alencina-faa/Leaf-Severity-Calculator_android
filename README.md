@@ -255,8 +255,8 @@ cd leafseveritycalculator
 - `take_photo()`: Camera integration
 - `open_image()`: Gallery file picker
 - `extract_background_color()`: Illumination correction (rolling-ball)
-- `procesar_imagen()`: Image segmentation + severity calculation
-- `guardar_imagen()`: Save results
+- `process_image()`: Image segmentation + severity calculation
+- `save_image()`: Save results
 
 ### Android Build Configuration
 

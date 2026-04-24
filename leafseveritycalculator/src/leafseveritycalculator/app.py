@@ -43,7 +43,7 @@ class LeafSeverityCalculator(toga.App):
         self.progress_label = toga.Label('', style=Pack(text_align='center'))
         main_box.add(self.progress_label)
 
-        self.severity_button = toga.Button("Calculate Severity", on_press=self.procesar_imagen, style=Pack(padding=5), enabled=False)
+        self.severity_button = toga.Button("Calculate Severity", on_press=self.process_image, style=Pack(padding=5), enabled=False)
         main_box.add(self.severity_button)
 
         self.result = toga.ImageView(style=Pack(height=300, padding=5, flex=1))
@@ -55,28 +55,28 @@ class LeafSeverityCalculator(toga.App):
         # Horizontal box of icons with white background
         iconos_box = toga.Box(style=Pack(direction=ROW, background_color='white', padding=10, alignment=BOTTOM, flex=1))
 
-        icono_inicio = toga.Button(icon="resources/iconohome.png", on_press=self.inicio, 
+        icono_inicio = toga.Button(icon="resources/iconohome.png", on_press=self.go_home, 
                                    #style=Pack(padding_left=70, padding_right=20, background_color="white")
                                    style=Pack(padding_top=2, padding_bottom=0,flex=1, background_color="white", 
                                               alignment=CENTER)
                                    )
         iconos_box.add(icono_inicio)
 
-        icono_guardar = toga.Button(icon="resources/iconoguardar.png", on_press=self.guardar_imagen, 
+        icono_guardar = toga.Button(icon="resources/iconoguardar.png", on_press=self.save_image, 
                                     #style=Pack(padding_left=20, padding_right=20, background_color="white")
                                     style=Pack(padding_top=2, padding_bottom=0,flex=1, background_color="white", 
                                                 alignment=CENTER)
                                     )
         iconos_box.add(icono_guardar)
         
-        icono_ayuda = toga.Button(icon="resources/iconoayuda.png", on_press=self.mostrar_ayuda,
+        icono_ayuda = toga.Button(icon="resources/iconoayuda.png", on_press=self.show_help,
                                   #style=Pack(padding_left=20, padding_right=20, background_color="white")
                                   style=Pack(padding_top=2, padding_bottom=0,flex=1, background_color="white", 
                                             alignment=CENTER)
                                   )
         iconos_box.add(icono_ayuda)
 
-        icono_salir = toga.Button(icon="resources/iconosalir.png", on_press=self.salir, 
+        icono_salir = toga.Button(icon="resources/iconosalir.png", on_press=self.exit_app, 
                                   #style=Pack(padding_left=20, padding_right=20, background_color="white")
                                   style=Pack(padding_top=2, padding_bottom=0,flex=1, background_color="white", 
                                              alignment=CENTER)
@@ -111,14 +111,14 @@ class LeafSeverityCalculator(toga.App):
         logo_cic_container.add(logo_cic)
         main_box.add(logo_cic_container)
 
-    def inicio(self, widget):
+    def go_home(self, widget):
         self.photo.image = None
         self.progress_label.text = ""
         self.severity_button.enabled = False
         self.result.image = None
         self.lbl_severidad.text = ""
     
-    def mostrar_ayuda(self, widget):
+    def show_help(self, widget):
         mensaje_corto = "This app calculates the leaf severity from a photo or an image."
         descripcion_larga = (
             "This application segments a photo or image of barley leaves pasted on "
@@ -132,7 +132,7 @@ class LeafSeverityCalculator(toga.App):
         self.main_window.info_dialog("About This App", f"{mensaje_corto}\n\n{descripcion_larga}")
 
 
-    async def salir(self, widget):
+    async def exit_app(self, widget):
         result = await self.main_window.confirm_dialog("Confirm Exit", "Do you want to close the application?")
         if result:
             import os
@@ -207,7 +207,7 @@ class LeafSeverityCalculator(toga.App):
         except PermissionError:
             await self.main_window.dialog(toga.InfoDialog("Oh no!", "You have not granted permission to take photos"))
 
-    async def procesar_imagen(self, widget, **kwargs):
+    async def process_image(self, widget, **kwargs):
         self.processing = True
         try:
             final_result = await asyncio.get_event_loop().run_in_executor(None, self._process_image_detailed)
@@ -301,17 +301,17 @@ class LeafSeverityCalculator(toga.App):
             else:
                 image_corr, elapsed = result, None
 
-            # Actualizar con la imagen corregida
+            # Update with corrected image
             _, png_buf = cv2.imencode('.png', cv2.cvtColor(image_corr, cv2.COLOR_RGB2BGR))
             self.photo.image = toga.Image(png_buf.tobytes())
             self.img_original = image_corr
 
-            # Label indicando corrección de fondo concluída
+            # Label indicating background correction completed
             if elapsed is not None:
-                self.progress_label.text = f"Iluminación corregida ({elapsed:.1f}s)"
+                self.progress_label.text = f"Illumination corrected ({elapsed:.1f}s)"
             else:
-                self.progress_label.text = "Iluminación corregida"
-            # Habilitar el botón de procesar imagen
+                self.progress_label.text = "Illumination corrected"
+            # Enable the process image button
             self.severity_button.enabled = True
                 
         except Exception as e:
@@ -344,20 +344,20 @@ class LeafSeverityCalculator(toga.App):
         elapsed = time.time() - t0
         return corrected, elapsed
 
-    async def guardar_imagen(self, widget, **kwargs):
+    async def save_image(self, widget, **kwargs):
         if self.img_procesada is None:
-            await self.main_window.dialog(toga.InfoDialog("Advertencia", "No hay imagen procesada para guardar."))
+            await self.main_window.dialog(toga.InfoDialog("Warning", "No processed image to save."))
             return
         try:
             save_dir = "/sdcard/Download/LeafSeverityImages"
             os.makedirs(save_dir, exist_ok=True)
             timestamp = time.strftime("%Y%m%d")
-            file_path = os.path.join(save_dir, f"{timestamp}_Severidad_{self.severidad:.2%}.png")
+            file_path = os.path.join(save_dir, f"{timestamp}_Severity_{self.severidad:.2%}.png")
             with open(file_path, "wb") as f:
                 f.write(self.img_procesada)
-            await self.main_window.dialog(toga.InfoDialog("Éxito", f"Imagen guardada en:\n{file_path}"))
+            await self.main_window.dialog(toga.InfoDialog("Success", f"Image saved to:\n{file_path}"))
         except Exception as e:
-            await self.main_window.dialog(toga.InfoDialog("Error", f"No se pudo guardar la imagen: {str(e)}"))
+            await self.main_window.dialog(toga.InfoDialog("Error", f"Failed to save image: {str(e)}"))
 
 def main():
     return LeafSeverityCalculator()

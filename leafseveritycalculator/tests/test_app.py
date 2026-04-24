@@ -16,24 +16,24 @@ def test_startup_initializes_state_without_real_ui():
     assert app.cache == {}
     assert app.ui_inicial == -0.03365811811
     assert app.ub_inicial == 185
-    assert app.main_window.title == "Calculadora de Severidad de Hojas"
+    assert app.main_window.title == "Leaf Severity Calculator"
     assert app.main_window.shown is True
     assert app.severity_button.enabled is False
     assert app.progress_label.text == ""
     assert app.lbl_severidad.text == ""
 
 
-def test_inicio_resets_visual_state():
+def test_go_home_resets_visual_state():
     app = build_app()
     app.startup()
 
     app.photo.image = object()
-    app.progress_label.text = "Procesando"
+    app.progress_label.text = "Processing"
     app.severity_button.enabled = True
     app.result.image = object()
-    app.lbl_severidad.text = "Severidad: 30%"
+    app.lbl_severidad.text = "Severity: 30%"
 
-    app.inicio(None)
+    app.go_home(None)
 
     assert app.photo.image is None
     assert app.progress_label.text == ""
@@ -42,11 +42,11 @@ def test_inicio_resets_visual_state():
     assert app.lbl_severidad.text == ""
 
 
-def test_mostrar_ayuda_displays_expected_copy():
+def test_show_help_displays_expected_copy():
     app = build_app()
     app.startup()
 
-    app.mostrar_ayuda(None)
+    app.show_help(None)
 
     assert len(app.main_window.info_calls) == 1
     title, message = app.main_window.info_calls[0]
@@ -55,7 +55,7 @@ def test_mostrar_ayuda_displays_expected_copy():
     assert "healthy leaf portion (green)" in message
 
 
-def test_procesar_imagen_updates_result_state():
+def test_process_image_updates_result_state():
     app = build_app()
     app.startup()
     module = load_app_module()
@@ -66,27 +66,27 @@ def test_procesar_imagen_updates_result_state():
     original_get_event_loop = module.asyncio.get_event_loop
     module.asyncio.get_event_loop = lambda: FakeExecutorLoop()
     try:
-        asyncio.run(app.procesar_imagen(None))
+        asyncio.run(app.process_image(None))
     finally:
         module.asyncio.get_event_loop = original_get_event_loop
 
     assert app.img_procesada is processed_image
     assert app.result.image.src is processed_image
     assert app.severidad == 0.25
-    assert app.lbl_severidad.text == "Severidad: 25.00%"
+    assert app.lbl_severidad.text == "Severity: 25.00%"
     assert app.severity_button.enabled is False
     assert app.processing is False
 
 
-def test_procesar_imagen_reports_processing_errors():
+def test_process_image_reports_processing_errors():
     app = build_app()
     app.startup()
     module = load_app_module()
 
     original_get_event_loop = module.asyncio.get_event_loop
-    module.asyncio.get_event_loop = lambda: FakeExecutorLoop(error=RuntimeError("fallo controlado"))
+    module.asyncio.get_event_loop = lambda: FakeExecutorLoop(error=RuntimeError("controlled failure"))
     try:
-        asyncio.run(app.procesar_imagen(None))
+        asyncio.run(app.process_image(None))
     finally:
         module.asyncio.get_event_loop = original_get_event_loop
 
@@ -94,22 +94,22 @@ def test_procesar_imagen_reports_processing_errors():
     assert len(app.main_window.dialog_calls) == 1
     dialog = app.main_window.dialog_calls[0]
     assert dialog.title == "Error"
-    assert "fallo controlado" in dialog.message
+    assert "controlled failure" in dialog.message
 
 
-def test_guardar_imagen_warns_when_there_is_no_processed_image():
+def test_save_image_warns_when_there_is_no_processed_image():
     app = build_app()
     app.startup()
 
-    asyncio.run(app.guardar_imagen(None))
+    asyncio.run(app.save_image(None))
 
     assert len(app.main_window.dialog_calls) == 1
     dialog = app.main_window.dialog_calls[0]
-    assert dialog.title == "Advertencia"
-    assert "No hay imagen procesada" in dialog.message
+    assert dialog.title == "Warning"
+    assert "No processed image" in dialog.message
 
 
-def test_guardar_imagen_writes_png_and_reports_success():
+def test_save_image_writes_png_and_reports_success():
     app = build_app()
     app.startup()
     module = load_app_module()
@@ -147,16 +147,16 @@ def test_guardar_imagen_writes_png_and_reports_success():
     module.time.strftime = lambda fmt: "20260424"
     builtins.open = fake_open
     try:
-        asyncio.run(app.guardar_imagen(None))
+        asyncio.run(app.save_image(None))
     finally:
         module.os.makedirs = original_makedirs
         module.time.strftime = original_strftime
         builtins.open = original_open
 
     assert written["makedirs"] == ("/sdcard/Download/LeafSeverityImages", True)
-    assert written["path"].endswith("20260424_Severidad_25.00%.png")
+    assert written["path"].endswith("20260424_Severity_25.00%.png")
     assert written["data"].startswith(b"\x89PNG")
     assert len(app.main_window.dialog_calls) == 1
     dialog = app.main_window.dialog_calls[0]
-    assert dialog.title == "Éxito"
+    assert dialog.title == "Success"
     assert written["path"] in dialog.message
