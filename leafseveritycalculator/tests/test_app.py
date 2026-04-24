@@ -1,4 +1,7 @@
 import importlib
+import asyncio
+import builtins
+import io
 import sys
 import types
 
@@ -19,12 +22,17 @@ def _install_test_stubs():
                 self.content = None
                 self.shown = False
                 self.info_calls = []
+                self.dialog_calls = []
 
             def show(self):
                 self.shown = True
 
             def info_dialog(self, title, message):
                 self.info_calls.append((title, message))
+
+            async def dialog(self, dialog):
+                self.dialog_calls.append(dialog)
+                return dialog
 
         class DummyBox:
             def __init__(self, *args, **kwargs):
@@ -60,6 +68,11 @@ def _install_test_stubs():
             def __init__(self, src=None, **kwargs):
                 self.src = src
 
+        class DummyInfoDialog:
+            def __init__(self, title, message):
+                self.title = title
+                self.message = message
+
         toga.App = DummyApp
         toga.MainWindow = DummyMainWindow
         toga.Box = DummyBox
@@ -68,6 +81,7 @@ def _install_test_stubs():
         toga.ImageView = DummyImageView
         toga.Label = DummyLabel
         toga.Image = DummyImage
+        toga.InfoDialog = DummyInfoDialog
 
         style_mod = types.ModuleType("toga.style")
         style_mod.Pack = lambda *args, **kwargs: {"args": args, "kwargs": kwargs}
@@ -225,3 +239,115 @@ def test_mostrar_ayuda_displays_expected_copy():
     assert title == "About This App"
     assert "calculates the leaf severity" in message
     assert "healthy leaf portion (green)" in message
+
+
+def test_procesar_imagen_updates_result_state():
+    app = _build_app()
+    app.startup()
+    module = importlib.import_module("leafseveritycalculator.src.leafseveritycalculator.app")
+
+    processed_image = PILImage.new("RGB", (8, 8), color=(255, 0, 0))
+
+    class FakeLoop:
+        async def run_in_executor(self, executor, func):
+            return func()
+
+    app._process_image_detailed = lambda: (processed_image, 0.25)
+    original_get_event_loop = module.asyncio.get_event_loop
+    module.asyncio.get_event_loop = lambda: FakeLoop()
+    try:
+        asyncio.run(app.procesar_imagen(None))
+    finally:
+        module.asyncio.get_event_loop = original_get_event_loop
+
+    assert app.img_procesada is processed_image
+    assert app.result.image.src is processed_image
+    assert app.severidad == 0.25
+    assert app.lbl_severidad.text == "Severidad: 25.00%"
+    assert app.severity_button.enabled is False
+    assert app.processing is False
+
+
+def test_procesar_imagen_reports_processing_errors():
+    app = _build_app()
+    app.startup()
+    module = importlib.import_module("leafseveritycalculator.src.leafseveritycalculator.app")
+
+    class FakeLoop:
+        async def run_in_executor(self, executor, func):
+            raise RuntimeError("fallo controlado")
+
+    original_get_event_loop = module.asyncio.get_event_loop
+    module.asyncio.get_event_loop = lambda: FakeLoop()
+    try:
+        asyncio.run(app.procesar_imagen(None))
+    finally:
+        module.asyncio.get_event_loop = original_get_event_loop
+
+    assert app.processing is False
+    assert len(app.main_window.dialog_calls) == 1
+    dialog = app.main_window.dialog_calls[0]
+    assert dialog.title == "Error"
+    assert "fallo controlado" in dialog.message
+
+
+def test_guardar_imagen_warns_when_there_is_no_processed_image():
+    app = _build_app()
+    app.startup()
+
+    asyncio.run(app.guardar_imagen(None))
+
+    assert len(app.main_window.dialog_calls) == 1
+    dialog = app.main_window.dialog_calls[0]
+    assert dialog.title == "Advertencia"
+    assert "No hay imagen procesada" in dialog.message
+
+
+def test_guardar_imagen_writes_png_and_reports_success():
+    app = _build_app()
+    app.startup()
+    module = importlib.import_module("leafseveritycalculator.src.leafseveritycalculator.app")
+    app.img_procesada = PILImage.new("RGB", (4, 4), color=(0, 255, 0))
+    app.severidad = 0.25
+
+    written = {"path": None, "data": b"", "makedirs": None}
+
+    class FakeFile:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def write(self, data):
+            written["data"] += data
+
+    original_makedirs = module.os.makedirs
+    original_strftime = module.time.strftime
+    original_open = builtins.open
+
+    def fake_makedirs(path, exist_ok=False):
+        written["makedirs"] = (path, exist_ok)
+
+    def fake_open(path, mode):
+        written["path"] = path
+        assert mode == "wb"
+        return FakeFile()
+
+    module.os.makedirs = fake_makedirs
+    module.time.strftime = lambda fmt: "20260424"
+    builtins.open = fake_open
+    try:
+        asyncio.run(app.guardar_imagen(None))
+    finally:
+        module.os.makedirs = original_makedirs
+        module.time.strftime = original_strftime
+        builtins.open = original_open
+
+    assert written["makedirs"] == ("/sdcard/Download/LeafSeverityImages", True)
+    assert written["path"].endswith("20260424_Severidad_25.00%.png")
+    assert written["data"].startswith(b"\x89PNG")
+    assert len(app.main_window.dialog_calls) == 1
+    dialog = app.main_window.dialog_calls[0]
+    assert dialog.title == "Éxito"
+    assert written["path"] in dialog.message
