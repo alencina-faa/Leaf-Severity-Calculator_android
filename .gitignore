@@ -64,6 +64,7 @@ var/
 # Briefcase log files
 logs/
 /.venv
+/leafseveritycalculator/.venv38/
 /leafseveritycalculator/android/.gradle/
 /leafseveritycalculator/android/build/
 /leafseveritycalculator/install_run_log*.txt

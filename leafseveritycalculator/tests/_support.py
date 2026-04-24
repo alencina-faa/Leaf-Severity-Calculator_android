@@ -138,15 +138,6 @@ def install_test_stubs():
         sys.modules["tatogalib.uri_io.urifilebrowser"] = urifilebrowser
         sys.modules["tatogalib.uri_io.urifile"] = urifile
 
-    if "numpy_rolling_ball" not in sys.modules:
-        numpy_rolling_ball = types.ModuleType("numpy_rolling_ball")
-
-        def subtract_background_rolling_ball(arr, *args, **kwargs):
-            return arr, np.zeros_like(arr)
-
-        numpy_rolling_ball.subtract_background_rolling_ball = subtract_background_rolling_ball
-        sys.modules["numpy_rolling_ball"] = numpy_rolling_ball
-
     if "cv2_rolling_ball" not in sys.modules:
         cv2_rolling_ball = types.ModuleType("cv2_rolling_ball")
 
