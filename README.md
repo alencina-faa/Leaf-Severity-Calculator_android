@@ -9,10 +9,10 @@ A cross-platform Android application that analyzes barley leaf images to calcula
 ### Key Features
 
 - 📸 **Capture & Upload**: Take photos with device camera or select images from gallery
-- 🔬 **Intelligent Segmentation**: Uses Otsu algorithm (blue band) and K-means ((red-green)/(red+green) index)
+- 🔬 **Threshold-Based Segmentation**: Uses fixed thresholds on blue channel (`ub`) and index `(green-red)/(green+red)` (`ui`); these values were calibrated offline using Otsu/K-means during model setup
 - 📊 **Severity Calculation**: Real-time calculation of disease percentage
 - 💾 **Save Results**: Export processed images with severity metrics to device storage
-- 🌐 **Bilingual Ready**: Full English USA UI (with Spanish versions available in other branches)
+- 🌐 **English USA UI**: Full English interface across dialogs, labels, and actions
 - ⚡ **Modern Stack**: Python 3.12, latest PyPI dependencies
 
 ## Technology Stack
@@ -24,7 +24,6 @@ A cross-platform Android application that analyzes barley leaf images to calcula
 | toga-android | ~0.4.5 | PyPI |
 | NumPy | Latest | PyPI |
 | Pillow | Latest | PyPI |
-| opencv-rolling-ball | Latest | PyPI |
 | numpy-rolling-ball | >=1,<2 | PyPI |
 | tatogalib | Latest | Local wheel |
 
@@ -138,9 +137,6 @@ Used for image processing:
 ### numpy-rolling-ball
 Background illumination correction using rolling-ball algorithm (subtracts background light to normalize images).
 
-### opencv-rolling-ball
-OpenCV-based rolling ball filter implementation (used in some processing pipelines).
-
 ### tatogalib
 URI file browser and Android file system integration (allows selecting images from device gallery).
 
@@ -191,7 +187,7 @@ Defined in `android/app_template/src/main/AndroidManifest.xml`:
 ### Issue: Module not found errors
 **Solution**: Ensure all dependencies are installed via pip:
 ```bash
-pip install briefcase toga-android numpy pillow opencv-rolling-ball numpy-rolling-ball tatogalib
+pip install briefcase toga-android numpy pillow numpy-rolling-ball tatogalib
 ```
 
 ### Issue: Android SDK/NDK not found
