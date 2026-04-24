@@ -157,8 +157,8 @@ python -m pytest tests/
 - `take_photo()`: Camera integration
 - `open_image()`: Gallery file picker
 - `extract_background_color()`: Illumination correction
-- `procesar_imagen()`: Image segmentation and severity calculation
-- `guardar_imagen()`: Save results to device storage
+- `process_image()`: Image segmentation and severity calculation
+- `save_image()`: Save results to device storage
 
 ### UI Components
 
