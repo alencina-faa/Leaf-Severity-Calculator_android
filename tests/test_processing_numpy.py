@@ -73,7 +73,7 @@ def _build_app():
 def test_numpy_processing_returns_image_and_severity_range():
     app = _build_app()
 
-    arr = np.zeros((300, 400, 3), dtype=np.uint8)
+    arr = np.full((300, 400, 3), 255, dtype=np.uint8)
     arr[50:200, 100:250] = [34, 200, 34]
     arr[100:250, 200:350] = [200, 34, 34]
     app.img_original = Image.fromarray(arr)
@@ -81,6 +81,11 @@ def test_numpy_processing_returns_image_and_severity_range():
     processed_img, severity = app._process_image_opencv()
     assert isinstance(processed_img, Image.Image)
     assert 0.0 <= float(severity) <= 1.0
+
+    processed_arr = np.array(processed_img)
+    assert np.array_equal(processed_arr[60, 110], np.array([0, 255, 0], dtype=np.uint8))
+    assert np.array_equal(processed_arr[220, 300], np.array([255, 0, 0], dtype=np.uint8))
+    assert np.array_equal(processed_arr[10, 10], np.array([0, 0, 0], dtype=np.uint8))
 
 
 def test_numpy_resize_respects_max_dimension():

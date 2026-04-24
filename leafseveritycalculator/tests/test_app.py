@@ -18,9 +18,13 @@ def _install_test_stubs():
                 self.title = title
                 self.content = None
                 self.shown = False
+                self.info_calls = []
 
             def show(self):
                 self.shown = True
+
+            def info_dialog(self, title, message):
+                self.info_calls.append((title, message))
 
         class DummyBox:
             def __init__(self, *args, **kwargs):
@@ -208,3 +212,16 @@ def test_inicio_resets_visual_state():
     assert app.severity_button.enabled is False
     assert app.result.image is None
     assert app.lbl_severidad.text == ""
+
+
+def test_mostrar_ayuda_displays_expected_copy():
+    app = _build_app()
+    app.startup()
+
+    app.mostrar_ayuda(None)
+
+    assert len(app.main_window.info_calls) == 1
+    title, message = app.main_window.info_calls[0]
+    assert title == "About This App"
+    assert "calculates the leaf severity" in message
+    assert "healthy leaf portion (green)" in message
