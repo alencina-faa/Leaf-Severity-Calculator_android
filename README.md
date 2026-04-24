@@ -9,7 +9,7 @@ Cross-platform Android application for analyzing barley leaf disease severity. T
 ### Key Features
 
 - 📸 **Capture & Upload**: Device camera or gallery image selection
-- 🔬 **Intelligent Segmentation**: Otsu algorithm (blue band) + K-means ((red-green)/(red+green) index)
+- 🔬 **Threshold-Based Segmentation**: Uses fixed thresholds on blue channel (`ub`) and index `(green-red)/(green+red)` (`ui`); these values were calibrated offline using Otsu/K-means during model setup
 - 📊 **Severity Calculation**: Real-time disease percentage computation
 - 💾 **Save Results**: Export processed images to `/sdcard/Download/LeafSeverityImages`
 - 🌐 **Full English USA UI**: All strings localized to English
