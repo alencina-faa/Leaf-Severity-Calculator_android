@@ -3,7 +3,6 @@ import sys
 import types
 
 import numpy as np
-from PIL import Image as PILImage
 
 
 class DummyApp:
@@ -171,8 +170,11 @@ def install_test_stubs():
             else:
                 new_w = max(int(img.shape[1] * fx), 1)
                 new_h = max(int(img.shape[0] * fy), 1)
-            pil = PILImage.fromarray(img)
-            return np.array(pil.resize((new_w, new_h), resample=PILImage.Resampling.BILINEAR))
+            y_idx = (np.linspace(0, img.shape[0] - 1, new_h)).astype(int)
+            x_idx = (np.linspace(0, img.shape[1] - 1, new_w)).astype(int)
+            if img.ndim == 3:
+                return img[np.ix_(y_idx, x_idx)]
+            return img[y_idx][:, x_idx]
 
         def merge(channels):
             return np.stack(channels, axis=-1)
@@ -184,19 +186,13 @@ def install_test_stubs():
             return 255 - a
 
         def imencode(ext, img, params=None):
-            import io as _io
-            # cv2 images are BGR; PNG/JPEG files are RGB — swap channels like real cv2 does
-            img_rgb = img[..., ::-1] if img.ndim == 3 and img.shape[2] == 3 else img
-            pil_img = PILImage.fromarray(img_rgb)
-            fmt = "PNG" if ext.lower() in (".png",) else "JPEG"
-            buf = _io.BytesIO()
-            pil_img.save(buf, format=fmt)
-            return True, np.frombuffer(buf.getvalue(), dtype=np.uint8)
+            header = b"\x89PNG\r\n\x1a\n" if ext.lower() == ".png" else b"\xff\xd8\xff"
+            payload = np.asarray(img, dtype=np.uint8).tobytes()
+            return True, np.frombuffer(header + payload, dtype=np.uint8)
 
         def imdecode(buf, flags):
-            import io as _io
-            pil_img = PILImage.open(_io.BytesIO(bytes(buf)))
-            return np.array(pil_img)
+            # Return a small dummy RGB image for tests that only need a valid ndarray.
+            return np.zeros((8, 8, 3), dtype=np.uint8)
 
         cv2.IMREAD_COLOR = 1
         cv2.cvtColor = cvtColor

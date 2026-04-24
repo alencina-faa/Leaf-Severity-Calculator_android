@@ -37,7 +37,6 @@ Cross-platform Android application for analyzing barley leaf disease severity. T
 | Briefcase | 0.3.19 | Local venv | Matches Briefcase template v0.3.19 |
 | toga-android | ~0.4.5 | PyPI | |
 | NumPy | 1.19.5 | Local wheels (cp38) | Pre-built for Android ABIs |
-| Pillow | 11.0.0 | Local wheels | Universal wheel |
 | opencv-python | 4.5.1.48 | Local wheels (cp38) | Pre-built for Android ABIs |
 | opencv-rolling-ball | Latest | PyPI | |
 | tatogalib | 0.9.6 | Local wheel (universal) | File browser integration |

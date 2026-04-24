@@ -1,6 +1,5 @@
 import asyncio
 import builtins
-from PIL import Image as PILImage
 from ._support import FakeExecutorLoop, build_app, load_app_module
 
 
@@ -60,7 +59,7 @@ def test_process_image_updates_result_state():
     app.startup()
     module = load_app_module()
 
-    processed_image = PILImage.new("RGB", (8, 8), color=(255, 0, 0))
+    processed_image = b"\x89PNG\r\n\x1a\nPROCESSED"
 
     app._process_image_detailed = lambda: (processed_image, 0.25)
     original_get_event_loop = module.asyncio.get_event_loop
@@ -113,10 +112,7 @@ def test_save_image_writes_png_and_reports_success():
     app = build_app()
     app.startup()
     module = load_app_module()
-    import io as _io
-    _buf = _io.BytesIO()
-    PILImage.new("RGB", (4, 4), color=(0, 255, 0)).save(_buf, format="PNG")
-    app.img_procesada = _buf.getvalue()
+    app.img_procesada = b"\x89PNG\r\n\x1a\nTESTDATA"
     app.severidad = 0.25
 
     written = {"path": None, "data": b"", "makedirs": None}
