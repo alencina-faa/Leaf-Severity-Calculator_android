@@ -10,9 +10,6 @@ author_email = "alencina@azul.faa.unicen.edu.ar"
 
 requires = [
     "toga-core",
-    "numpy>=1.26,<2",
-    "Pillow>=11,<12",
-    "numpy-rolling-ball>=1,<2",
 ]
 
 [tool.briefcase.app.leafseveritycalculator]
@@ -49,11 +46,17 @@ universal_build = true
 requires = [
     "toga-cocoa~=0.4.5",
     "std-nslog~=1.0.0",
+    "numpy>=1.26,<2",
+    "Pillow>=11,<12",
+    "numpy-rolling-ball>=1,<2",
 ]
 
 [tool.briefcase.app.leafseveritycalculator.linux]
 requires = [
     "toga-gtk~=0.4.5",
+    "numpy>=1.26,<2",
+    "Pillow>=11,<12",
+    "numpy-rolling-ball>=1,<2",
 ]
 
 [tool.briefcase.app.leafseveritycalculator.linux.system.debian]
@@ -169,6 +172,9 @@ flatpak_sdk = "org.gnome.Sdk"
 [tool.briefcase.app.leafseveritycalculator.windows]
 requires = [
     "toga-winforms~=0.4.5",
+    "numpy>=1.26,<2",
+    "Pillow>=11,<12",
+    "numpy-rolling-ball>=1,<2",
 ]
 
 # Mobile deployments
@@ -176,6 +182,9 @@ requires = [
 requires = [
     "toga-iOS~=0.4.5",
     "std-nslog~=1.0.0",
+    "numpy>=1.26,<2",
+    "Pillow>=11,<12",
+    "numpy-rolling-ball>=1,<2",
 ]
 
 [tool.briefcase.app.leafseveritycalculator.android]
@@ -184,9 +193,9 @@ requires = [
     "../wheels/numpy-1.26.2-0-cp312-cp312-android_21_arm64_v8a.whl",
     "../wheels/numpy-1.26.2-0-cp312-cp312-android_21_x86_64.whl",
     "../wheels/tatogalib-0.9.6-py3-none-any.whl",
-    "../wheels/numpy_rolling_ball-1.0.0-py3-none-any.whl",
     "../wheels/pillow-11.0.0-0-cp312-cp312-android_24_arm64_v8a.whl",
     "../wheels/pillow-11.0.0-0-cp312-cp312-android_24_x86_64.whl",
+    "numpy-rolling-ball>=1,<2",
 ]
 
 build_gradle_extra_content = """\
@@ -242,6 +251,9 @@ build_gradle_dependencies = [
 [tool.briefcase.app.leafseveritycalculator.web]
 requires = [
     "toga-web~=0.4.5",
+    "numpy>=1.26,<2",
+    "Pillow>=11,<12",
+    "numpy-rolling-ball>=1,<2",
 ]
 style_framework = "Shoelace v2.3"
 
