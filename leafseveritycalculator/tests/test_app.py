@@ -3,6 +3,7 @@ import sys
 import types
 
 import numpy as np
+from PIL import Image as PILImage
 
 
 def _install_test_stubs():
@@ -123,13 +124,43 @@ def _install_test_stubs():
         cv2.COLOR_BGR2RGB = 2
         cv2.INTER_AREA = 3
         cv2.INTER_CUBIC = 4
-        cv2.cvtColor = lambda img, code: img
-        cv2.split = lambda img: (img[..., 0], img[..., 1], img[..., 2])
-        cv2.divide = lambda a, b: np.divide(a, b)
-        cv2.resize = lambda img, dsize=None, fx=None, fy=None, interpolation=None: img
-        cv2.merge = lambda channels: np.stack(channels, axis=-1)
-        cv2.subtract = lambda a, b: np.clip(a.astype(np.int16) - b.astype(np.int16), 0, 255).astype(np.uint8)
-        cv2.bitwise_not = lambda a: 255 - a
+
+        def cvtColor(img, code):
+            if code in (cv2.COLOR_RGB2BGR, cv2.COLOR_BGR2RGB):
+                return img[..., ::-1]
+            return img
+
+        def split(img):
+            return img[..., 0], img[..., 1], img[..., 2]
+
+        def divide(a, b):
+            return np.divide(a, b)
+
+        def resize(img, dsize=None, fx=None, fy=None, interpolation=None):
+            if dsize is not None:
+                new_w, new_h = dsize
+            else:
+                new_w = max(int(img.shape[1] * fx), 1)
+                new_h = max(int(img.shape[0] * fy), 1)
+            pil = PILImage.fromarray(img)
+            return np.array(pil.resize((new_w, new_h), resample=PILImage.Resampling.BILINEAR))
+
+        def merge(channels):
+            return np.stack(channels, axis=-1)
+
+        def subtract(a, b):
+            return np.clip(a.astype(np.int16) - b.astype(np.int16), 0, 255).astype(np.uint8)
+
+        def bitwise_not(a):
+            return 255 - a
+
+        cv2.cvtColor = cvtColor
+        cv2.split = split
+        cv2.divide = divide
+        cv2.resize = resize
+        cv2.merge = merge
+        cv2.subtract = subtract
+        cv2.bitwise_not = bitwise_not
         sys.modules["cv2"] = cv2
 
 
