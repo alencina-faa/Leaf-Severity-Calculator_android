@@ -204,7 +204,19 @@ def install_test_stubs():
 
 def load_app_module():
     install_test_stubs()
-    return importlib.import_module("leafseveritycalculator.src.leafseveritycalculator.app")
+    candidates = [
+        "leafseveritycalculator.src.leafseveritycalculator.app",
+        "src.leafseveritycalculator.app",
+        "leafseveritycalculator.app",
+    ]
+    for module_name in candidates:
+        try:
+            return importlib.import_module(module_name)
+        except ModuleNotFoundError:
+            continue
+    raise ModuleNotFoundError(
+        "Could not import app module from any known path: " + ", ".join(candidates)
+    )
 
 
 def build_app():
