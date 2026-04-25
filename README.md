@@ -27,6 +27,26 @@ A cross-platform Android application that analyzes barley leaf images to calcula
 | numpy-rolling-ball | >=1,<2 | PyPI |
 | tatogalib | Latest | Local wheel |
 
+## Branch Processing Notes (Main vs OpenCV-based)
+
+Both branches keep the same functional workflow:
+
+- Camera/gallery input
+- Illumination correction before severity
+- Aspect-ratio-preserving resize (fit inside 800x600)
+- Threshold segmentation and severity display
+
+The implementation intentionally differs:
+
+- **main**
+   - Illumination correction: `numpy-rolling-ball`
+   - Processing style: NumPy-first pipeline (modern stack)
+- **OpenCV-based**
+   - Illumination correction: `opencv-rolling-ball` (`cv2_rolling_ball`)
+   - Processing style: OpenCV for decode/resize/encode + NumPy masks for severity math (legacy stack)
+
+This split reflects compatibility and memory constraints across modern vs legacy Android targets.
+
 ## Project Structure
 
 ```
@@ -46,6 +66,13 @@ leafseveritycalculator/
 └── pyproject.toml                  # Project configuration
 
 ```
+
+### Why there is a second README/LICENSE inside `leafseveritycalculator/`
+
+That folder is the Briefcase app project root used for packaging. Keeping `README.rst` and `LICENSE` there is expected, while root-level docs are repository-level documentation.
+
+- Root docs/files: repository documentation for contributors/GitHub
+- `leafseveritycalculator/README.rst` and `leafseveritycalculator/LICENSE`: app packaging metadata/docs
 
 ## Getting Started
 

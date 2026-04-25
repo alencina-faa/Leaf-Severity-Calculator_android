@@ -1,5 +1,11 @@
 # LeafSeverityCalculator Release Notes
 
+## 0.0.9a1 (25 Apr 2026)
+
+* Documented branch split between `main` (modern NumPy/`numpy-rolling-ball`) and `OpenCV-based` (legacy OpenCV/`opencv-rolling-ball`) implementations.
+* Clarified that both branches preserve the same user workflow (illumination correction before severity, aspect-ratio-preserving resize, same threshold logic).
+* Clarified repository layout and why `leafseveritycalculator/README.rst` and `leafseveritycalculator/LICENSE` coexist with root-level docs.
+
 ## 0.0.1 (04 Mar 2025)
 
 * Initial release
