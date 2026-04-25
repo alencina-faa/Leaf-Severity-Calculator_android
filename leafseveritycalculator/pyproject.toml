@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "LeafSeverityCalculator"
 bundle = "ar.edu.unicen.faa"
-version = "0.0.4"
+version = "0.0.9a1"
 url = "https://faa.unicen.edu.ar/leafseveritycalculator"
 license.file = "LICENSE"
 author = "Emiliano David, Alberto Lencina, Luisa Cabezas"
@@ -10,8 +10,6 @@ author_email = "alencina@azul.faa.unicen.edu.ar"
 
 requires = [
     "toga-core",
-    "Pillow",
-    "opencv-rolling-ball",
 ]
 
 [tool.briefcase.app.leafseveritycalculator]
@@ -24,7 +22,11 @@ leaf regions relative to the total leaf pixels. The values ​​used for segmen
 from a sample of training images using the Otsu algorithm for the blue band and the Kmeans 
 algorithm for the (red - green) / (red + green) index.
 """
-permission.camera = "App will take mugshots."
+permission.camera = "Permitir tomar fotos."
+
+icon = "icons/logoapp"
+
+resources = ["resources"]
 
 sources = [
     "src/leafseveritycalculator",
@@ -44,11 +46,17 @@ universal_build = true
 requires = [
     "toga-cocoa~=0.4.5",
     "std-nslog~=1.0.0",
+    "numpy>=1.26,<2",
+    "Pillow>=11,<12",
+    "numpy-rolling-ball>=1,<2",
 ]
 
 [tool.briefcase.app.leafseveritycalculator.linux]
 requires = [
     "toga-gtk~=0.4.5",
+    "numpy>=1.26,<2",
+    "Pillow>=11,<12",
+    "numpy-rolling-ball>=1,<2",
 ]
 
 [tool.briefcase.app.leafseveritycalculator.linux.system.debian]
@@ -164,7 +172,9 @@ flatpak_sdk = "org.gnome.Sdk"
 [tool.briefcase.app.leafseveritycalculator.windows]
 requires = [
     "toga-winforms~=0.4.5",
-    "opencv-python-headless>=4.5.0",
+    "numpy>=1.26,<2",
+    "Pillow>=11,<12",
+    "numpy-rolling-ball>=1,<2",
 ]
 
 # Mobile deployments
@@ -172,14 +182,20 @@ requires = [
 requires = [
     "toga-iOS~=0.4.5",
     "std-nslog~=1.0.0",
+    "numpy>=1.26,<2",
+    "Pillow>=11,<12",
+    "numpy-rolling-ball>=1,<2",
 ]
 
 [tool.briefcase.app.leafseveritycalculator.android]
 requires = [
     "toga-android~=0.4.5",
-    "../wheels/numpy-1.19.5-0-cp38-cp38-android_21_arm64_v8a.whl",
-    "../wheels/opencv_python-4.5.1.48-1-cp38-cp38-android_21_arm64_v8a.whl",
+    "../wheels/numpy-1.26.2-0-cp312-cp312-android_21_arm64_v8a.whl",
+    "../wheels/numpy-1.26.2-0-cp312-cp312-android_21_x86_64.whl",
     "../wheels/tatogalib-0.9.6-py3-none-any.whl",
+    "../wheels/pillow-11.0.0-0-cp312-cp312-android_24_arm64_v8a.whl",
+    "../wheels/pillow-11.0.0-0-cp312-cp312-android_24_x86_64.whl",
+    "numpy-rolling-ball>=1,<2",
 ]
 
 build_gradle_extra_content = """\
@@ -209,9 +225,9 @@ android {
             // Includes the default ProGuard rules files that are packaged with
             // the Android Gradle plugin. To learn more, go to the section about
             // R8 configuration files.
-//            proguardFiles getDefaultProguardFile(
-//                    'proguard-android-optimize.txt'),
-//                    'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile(
+                    'proguard-android-optimize.txt'),
+                    'proguard-rules.pro'
 
             // at android_gradle_app_build_intermediates_merged_native_libs_release_out_lib
 //            ndk {
@@ -235,6 +251,9 @@ build_gradle_dependencies = [
 [tool.briefcase.app.leafseveritycalculator.web]
 requires = [
     "toga-web~=0.4.5",
+    "numpy>=1.26,<2",
+    "Pillow>=11,<12",
+    "numpy-rolling-ball>=1,<2",
 ]
 style_framework = "Shoelace v2.3"
 

@@ -63,6 +63,3 @@ var/
 
 # Briefcase log files
 logs/
-/lsc_android
-/.venv_lsc_android
-/.venv
