@@ -393,10 +393,14 @@ class LeafSeverityCalculator(toga.App):
         small_h = max(int(image_rgb_original.shape[0] * RESIZE_FACTOR), 1)
         image_rgb_small = self._resize_with_pillow(image_rgb_original, small_w, small_h)
 
-        b, g, r = cv2.split(image_rgb_small)
-        _, b_background = subtract_background_rolling_ball(b, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
-        _, g_background = subtract_background_rolling_ball(g, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
+        # Keep main branch NumPy/Pillow-only processing (no OpenCV runtime dependency).
+        r = image_rgb_small[..., 0]
+        g = image_rgb_small[..., 1]
+        b = image_rgb_small[..., 2]
+
         _, r_background = subtract_background_rolling_ball(r, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
+        _, g_background = subtract_background_rolling_ball(g, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
+        _, b_background = subtract_background_rolling_ball(b, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
 
         background_rgb_small = np.stack([r_background, g_background, b_background], axis=-1)
         background_rgb_full = self._resize_with_pillow(background_rgb_small, image_rgb_original.shape[1], image_rgb_original.shape[0])
