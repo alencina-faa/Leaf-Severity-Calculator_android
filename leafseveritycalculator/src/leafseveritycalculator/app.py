@@ -193,6 +193,9 @@ class LeafSeverityCalculator(toga.App):
 
                 except Exception as e:
                     print(f"Error in background correction: {e}")
+                    # Keep original capture usable even if correction fails.
+                    self.progress_label.text = "Illumination correction failed. Using original image."
+                    self.severity_button.enabled = True
                 # Keep the original image if correction fails
                 finally:
                     self.processing = False
@@ -205,6 +208,8 @@ class LeafSeverityCalculator(toga.App):
             await self.main_window.dialog(toga.InfoDialog("Oh no!", "The Camera API is not implemented on this platform"))
         except PermissionError:
             await self.main_window.dialog(toga.InfoDialog("Oh no!", "You have not granted permission to take photos"))
+        except Exception as e:
+            await self.main_window.dialog(toga.InfoDialog("Error", f"Failed to capture/process photo: {str(e)}"))
 
     async def process_image(self, widget, **kwargs):
         if self.img_original is None:
@@ -361,6 +366,8 @@ class LeafSeverityCalculator(toga.App):
         except Exception as e:
             print(f"Error in background correction: {e}")
             # Keep the original image if correction fails
+            self.progress_label.text = "Illumination correction failed. Using selected image."
+            self.severity_button.enabled = True
         finally:
             self.processing = False
 
