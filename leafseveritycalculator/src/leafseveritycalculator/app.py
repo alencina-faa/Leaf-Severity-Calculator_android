@@ -9,7 +9,6 @@ import time
 import sys
 import numpy as np
 from tatogalib.uri_io.urifilebrowser import UriFileBrowser
-from tatogalib.uri_io.urifile import UriFile
 from numpy_rolling_ball import subtract_background_rolling_ball
 
 
@@ -208,6 +207,9 @@ class LeafSeverityCalculator(toga.App):
             await self.main_window.dialog(toga.InfoDialog("Oh no!", "You have not granted permission to take photos"))
 
     async def process_image(self, widget, **kwargs):
+        if self.img_original is None:
+            await self.main_window.dialog(toga.InfoDialog("Warning", "Please capture or select an image first."))
+            return
         self.processing = True
         try:
             final_result = await asyncio.get_event_loop().run_in_executor(None, self._process_image_detailed)
@@ -218,6 +220,8 @@ class LeafSeverityCalculator(toga.App):
                 self.severidad = severity
                 self.lbl_severidad.text = f"Severity: {self.severidad:.2%}"
                 self.severity_button.enabled = False
+            else:
+                await self.main_window.dialog(toga.InfoDialog("Error", "Image processing returned no result."))
         except Exception as e:
             await self.main_window.dialog(toga.InfoDialog("Error", f"Error processing image: {str(e)}"))
         finally:
@@ -236,8 +240,8 @@ class LeafSeverityCalculator(toga.App):
             # Ensure we have a NumPy array in RGB order
             img_np = np.array(self.img_original)
 
-            # Resize image to the common processing target size.
-            img_resized = self._resize_image_numpy(img_np, 800, 600)
+            # Resize preserving aspect ratio to avoid visual distortion.
+            img_resized = self._resize_preserve_aspect(img_np, 800, 600)
 
             # Extract channels (assume RGB input)
             r = img_resized[..., 0].astype(np.float32)
@@ -271,6 +275,25 @@ class LeafSeverityCalculator(toga.App):
     def _resize_image_numpy(self, img, target_width=800, target_height=600):
         return self._resize_with_pillow(img, target_width, target_height)
 
+    def _resize_preserve_aspect(self, img, max_width=800, max_height=600):
+        """Resize image preserving aspect ratio within max_width x max_height."""
+        if isinstance(img, Image.Image):
+            w, h = img.size
+            pil = img
+        else:
+            h, w = img.shape[:2]
+            pil = Image.fromarray(img)
+
+        if w <= 0 or h <= 0:
+            return np.array(pil)
+
+        scale = min(max_width / w, max_height / h)
+        # avoid upscaling tiny images unnecessarily
+        scale = min(scale, 1.0)
+        new_w = max(1, int(round(w * scale)))
+        new_h = max(1, int(round(h * scale)))
+        return self._resize_with_pillow(pil, new_w, new_h)
+
     def _resize_with_pillow(self, img, new_w, new_h):
         """Resize a numpy array or PIL Image using Pillow Lanczos resampling and return a numpy array.
 
@@ -302,6 +325,10 @@ class LeafSeverityCalculator(toga.App):
         initial = "content://media/external/images/media"#"content://com.android.externalstorage.documents/document/camera"
         urilist = await fb.open_file_dialog("", file_types=["jpg"], initial_uri=initial, multiselect=False)
 
+        if not urilist:
+            return
+
+        from tatogalib.uri_io.urifile import UriFile
         urifile = UriFile(urilist[0])
         f = urifile.open("rb", "utf-8-sig", newline=None)
         bytesobj = f.read()
@@ -388,15 +415,32 @@ class LeafSeverityCalculator(toga.App):
             await self.main_window.dialog(toga.InfoDialog("Warning", "No processed image to save."))
             return
         try:
-            save_dir = "/sdcard/Download/LeafSeverityImages"
-            os.makedirs(save_dir, exist_ok=True)
-            timestamp = time.strftime("%Y%m%d")
-            file_path = os.path.join(save_dir, f"{timestamp}_Severity_{self.severidad:.2%}.png")
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            safe_severity = f"{self.severidad:.2%}".replace("%", "pct")
+            suggested_name = f"{timestamp}_Severity_{safe_severity}.png"
+
+            fb = UriFileBrowser()
+            save_uri = await fb.save_file_dialog(
+                "Save segmented image",
+                suggested_filename=suggested_name,
+                file_types=["png"],
+            )
+
+            if not save_uri:
+                return
+
+            from tatogalib.uri_io.urifile import UriFile
+            urifile = UriFile(save_uri)
             output_bytes = io.BytesIO()
             self.img_procesada.save(output_bytes, format="PNG")
-            with open(file_path, "wb") as f:
+
+            f = urifile.open("wb")
+            try:
                 f.write(output_bytes.getvalue())
-            await self.main_window.dialog(toga.InfoDialog("Success", f"Image saved to:\n{file_path}"))
+            finally:
+                f.close()
+
+            await self.main_window.dialog(toga.InfoDialog("Success", "Image saved successfully."))
         except Exception as e:
             await self.main_window.dialog(toga.InfoDialog("Error", f"Failed to save image: {str(e)}"))
 
