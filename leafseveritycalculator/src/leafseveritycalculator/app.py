@@ -6,6 +6,7 @@ import os
 import time
 import sys
 import cv2
+import numpy as np
 from tatogalib.uri_io.urifilebrowser import UriFileBrowser
 from cv2_rolling_ball import subtract_background_rolling_ball
 
@@ -144,7 +145,6 @@ class LeafSeverityCalculator(toga.App):
                 os._exit(0)
 
     async def take_photo(self, widget, **kwargs):
-        import numpy as np
         self.photo.image = None
         self.progress_label.text = ""
         self.severity_button.enabled = False
@@ -207,16 +207,21 @@ class LeafSeverityCalculator(toga.App):
             await self.main_window.dialog(toga.InfoDialog("Oh no!", "You have not granted permission to take photos"))
 
     async def process_image(self, widget, **kwargs):
+        if self.img_original is None:
+            await self.main_window.dialog(toga.InfoDialog("Warning", "Please capture or select an image first."))
+            return
         self.processing = True
         try:
             final_result = await asyncio.get_event_loop().run_in_executor(None, self._process_image_detailed)
             if final_result:
                 processed_image, severity = final_result
                 self.img_procesada = processed_image
-                self.result.image = toga.Image(src=processed_image)
+                self.result.image = toga.Image(processed_image)
                 self.severidad = severity
                 self.lbl_severidad.text = f"Severity: {self.severidad:.2%}"
                 self.severity_button.enabled = False
+            else:
+                await self.main_window.dialog(toga.InfoDialog("Error", "Image processing returned no result."))
         except Exception as e:
             await self.main_window.dialog(toga.InfoDialog("Error", f"Error processing image: {str(e)}"))
         finally:
@@ -231,18 +236,16 @@ class LeafSeverityCalculator(toga.App):
         return result
 
     def _process_image_opencv(self):
-        import numpy as np
         try:
             img_np = np.array(self.img_original)
-            img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-            img_resized = self._resize_image(img_cv, 800, 600)
+            img_resized = self._resize_preserve_aspect(img_np, 800, 600)
 
-            b, g, r = cv2.split(img_resized)
-            r = r.astype(np.float32)
-            g = g.astype(np.float32)
+            r = img_resized[..., 0].astype(np.float32)
+            g = img_resized[..., 1].astype(np.float32)
+            b = img_resized[..., 2]
 
             epsilon = 1e-10
-            indice = cv2.divide(g - r, g + r + epsilon)
+            indice = (g - r) / (g + r + epsilon)
 
             mascara_hojas = b <= self.ub_inicial
             mascara_enferma = np.logical_and(indice <= self.ui_inicial, mascara_hojas)
@@ -252,9 +255,9 @@ class LeafSeverityCalculator(toga.App):
 
             img_resultado = np.zeros_like(img_resized)
             img_resultado[mascara_sana] = [0, 255, 0]
-            img_resultado[mascara_enferma] = [0, 0, 255]
+            img_resultado[mascara_enferma] = [255, 0, 0]
 
-            _, png_buf = cv2.imencode('.png', img_resultado)
+            _, png_buf = cv2.imencode('.png', cv2.cvtColor(img_resultado, cv2.COLOR_RGB2BGR))
             return png_buf.tobytes(), severity
         except Exception as e:
             print(f"Error in OpenCV processing: {e}")
@@ -262,6 +265,17 @@ class LeafSeverityCalculator(toga.App):
 
     def _resize_image(self, img, target_width=800, target_height=600):
         return cv2.resize(img, (target_width, target_height), interpolation=cv2.INTER_AREA)
+
+    def _resize_preserve_aspect(self, img, max_width=800, max_height=600):
+        h, w = img.shape[:2]
+        if w <= 0 or h <= 0:
+            return img
+
+        scale = min(max_width / w, max_height / h)
+        scale = min(scale, 1.0)
+        new_w = max(1, int(round(w * scale)))
+        new_h = max(1, int(round(h * scale)))
+        return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
     def _read_android_content_uri_bytes(self, uri_string):
         from android.net import Uri
@@ -283,7 +297,6 @@ class LeafSeverityCalculator(toga.App):
             stream.close()
 
     async def open_image(self, widget, **kwargs):
-        import numpy as np
         self.photo.image = None
         self.progress_label.text = ""
         self.severity_button.enabled = False
@@ -380,13 +393,29 @@ class LeafSeverityCalculator(toga.App):
             await self.main_window.dialog(toga.InfoDialog("Warning", "No processed image to save."))
             return
         try:
-            save_dir = "/sdcard/Download/LeafSeverityImages"
-            os.makedirs(save_dir, exist_ok=True)
-            timestamp = time.strftime("%Y%m%d")
-            file_path = os.path.join(save_dir, f"{timestamp}_Severity_{self.severidad:.2%}.png")
-            with open(file_path, "wb") as f:
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            safe_severity = f"{self.severidad:.2%}".replace("%", "pct")
+            suggested_name = f"{timestamp}_Severity_{safe_severity}.png"
+
+            fb = UriFileBrowser()
+            save_uri = await fb.save_file_dialog(
+                "Save segmented image",
+                suggested_filename=suggested_name,
+                file_types=["png"],
+            )
+
+            if not save_uri:
+                return
+
+            from tatogalib.uri_io.urifile import UriFile
+            urifile = UriFile(save_uri)
+            f = urifile.open("wb")
+            try:
                 f.write(self.img_procesada)
-            await self.main_window.dialog(toga.InfoDialog("Success", f"Image saved to:\n{file_path}"))
+            finally:
+                f.close()
+
+            await self.main_window.dialog(toga.InfoDialog("Success", "Image saved successfully."))
         except Exception as e:
             await self.main_window.dialog(toga.InfoDialog("Error", f"Failed to save image: {str(e)}"))
 
