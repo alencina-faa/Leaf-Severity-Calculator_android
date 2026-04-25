@@ -7,7 +7,6 @@ import time
 import sys
 import cv2
 from tatogalib.uri_io.urifilebrowser import UriFileBrowser
-from tatogalib.uri_io.urifile import UriFile
 from cv2_rolling_ball import subtract_background_rolling_ball
 
 
@@ -264,6 +263,25 @@ class LeafSeverityCalculator(toga.App):
     def _resize_image(self, img, target_width=800, target_height=600):
         return cv2.resize(img, (target_width, target_height), interpolation=cv2.INTER_AREA)
 
+    def _read_android_content_uri_bytes(self, uri_string):
+        from android.net import Uri
+
+        context = self._impl.native
+        resolver = context.getContentResolver()
+        stream = resolver.openInputStream(Uri.parse(uri_string))
+        if stream is None:
+            raise RuntimeError("Could not open Android content URI")
+
+        try:
+            data = bytearray()
+            value = stream.read()
+            while value != -1:
+                data.append(value)
+                value = stream.read()
+            return bytes(data)
+        finally:
+            stream.close()
+
     async def open_image(self, widget, **kwargs):
         import numpy as np
         self.photo.image = None
@@ -276,10 +294,23 @@ class LeafSeverityCalculator(toga.App):
         initial = "content://media/external/images/media"#"content://com.android.externalstorage.documents/document/camera"
         urilist = await fb.open_file_dialog("", file_types=["jpg"], initial_uri=initial, multiselect=False)
 
-        urifile = UriFile(urilist[0])
-        f = urifile.open("rb", "utf-8-sig", newline=None)
-        bytesobj = f.read()
-        f.close()
+        if not urilist:
+            return
+
+        bytesobj = None
+        try:
+            from tatogalib.uri_io.urifile import UriFile
+            urifile = UriFile(urilist[0])
+            f = urifile.open("rb", "utf-8-sig", newline=None)
+            try:
+                bytesobj = f.read()
+            finally:
+                f.close()
+        except Exception:
+            if sys.platform == "android" and urilist[0].startswith("content://"):
+                bytesobj = self._read_android_content_uri_bytes(urilist[0])
+            else:
+                raise
         
 
         self.photo.image = toga.Image(bytesobj)
