@@ -117,6 +117,38 @@ class LeafSeverityCalculator(toga.App):
         self.severity_button.enabled = False
         self.result.image = None
         self.lbl_severidad.text = ""
+
+    def _toga_image_to_rgb_array(self, image):
+        errors = []
+
+        for fmt in (bytes, "bytes", "png", "PNG", "jpeg", "JPEG"):
+            try:
+                encoded = image.as_format(fmt)
+                if isinstance(encoded, memoryview):
+                    encoded = encoded.tobytes()
+                if isinstance(encoded, bytearray):
+                    encoded = bytes(encoded)
+                if isinstance(encoded, bytes) and encoded:
+                    img_array = cv2.imdecode(np.frombuffer(encoded, np.uint8), cv2.IMREAD_COLOR)
+                    if img_array is not None:
+                        return cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
+            except Exception as e:
+                errors.append(f"{fmt}: {e}")
+
+        try:
+            from PIL import Image as PILImage
+
+            pil_image = image.as_format(PILImage.Image)
+            arr = np.array(pil_image)
+            if arr.ndim == 2:
+                arr = np.stack([arr, arr, arr], axis=-1)
+            elif arr.ndim == 3 and arr.shape[2] == 4:
+                arr = arr[..., :3]
+            return np.ascontiguousarray(arr.astype(np.uint8))
+        except Exception as e:
+            errors.append(f"PIL: {e}")
+
+        raise RuntimeError("Camera image conversion failed: " + " | ".join(errors))
     
     def show_help(self, widget):
         mensaje_corto = "This app calculates the leaf severity from a photo or an image."
@@ -159,11 +191,7 @@ class LeafSeverityCalculator(toga.App):
             image = await self.camera.take_photo()
             if image:
                 self.photo.image = image
-                img_bytes = image.as_format(bytes)
-                img_array = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
-                if img_array is None:
-                    raise RuntimeError("Camera returned an unreadable image.")
-                self.img_original = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
+                self.img_original = self._toga_image_to_rgb_array(image)
 
                 # Label indicating background correction
                 self.progress_label.text = "Correcting illumination..."
