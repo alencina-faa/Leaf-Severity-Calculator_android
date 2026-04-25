@@ -161,6 +161,8 @@ class LeafSeverityCalculator(toga.App):
                 self.photo.image = image
                 img_bytes = image.as_format(bytes)
                 img_array = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
+                if img_array is None:
+                    raise RuntimeError("Camera returned an unreadable image.")
                 self.img_original = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
 
                 # Label indicating background correction
@@ -284,6 +286,49 @@ class LeafSeverityCalculator(toga.App):
         new_h = max(1, int(round(h * scale)))
         return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
+    def _ensure_rgb_uint8(self, image):
+        arr = np.array(image)
+
+        if arr.ndim == 2:
+            arr = np.stack([arr, arr, arr], axis=-1)
+        elif arr.ndim == 3 and arr.shape[2] == 4:
+            arr = arr[..., :3]
+        elif arr.ndim == 3 and arr.shape[2] == 1:
+            arr = np.repeat(arr, 3, axis=2)
+        elif arr.ndim != 3 or arr.shape[2] < 3:
+            raise ValueError(f"Unsupported image shape for illumination correction: {arr.shape}")
+
+        if arr.dtype != np.uint8:
+            arr = np.clip(arr, 0, 255).astype(np.uint8)
+
+        return np.ascontiguousarray(arr)
+
+    def _estimate_background_channel(self, channel, radius):
+        channel = np.ascontiguousarray(channel.astype(np.uint8))
+
+        for r in (int(radius), max(31, int(radius * 0.6)), 21):
+            try:
+                _, background = subtract_background_rolling_ball(
+                    channel,
+                    r,
+                    light_background=True,
+                    use_paraboloid=False,
+                    do_presmooth=False,
+                )
+                return np.clip(background, 0, 255).astype(np.uint8)
+            except Exception:
+                continue
+
+        k = max(5, int(radius // 2) | 1)
+        return cv2.GaussianBlur(channel, (k, k), 0)
+
+    def _fallback_illumination_correction(self, image_rgb):
+        img = np.clip(image_rgb, 0, 255).astype(np.float32)
+        means = img.reshape(-1, 3).mean(axis=0) + 1e-6
+        gray = means.mean()
+        scale = gray / means
+        return np.clip(img * scale, 0, 255).astype(np.uint8)
+
     def _read_android_content_uri_bytes(self, uri_string):
         from android.net import Uri
 
@@ -335,6 +380,8 @@ class LeafSeverityCalculator(toga.App):
 
         self.photo.image = toga.Image(bytesobj)
         img_array = cv2.imdecode(np.frombuffer(bytesobj, np.uint8), cv2.IMREAD_COLOR)
+        if img_array is None:
+            raise RuntimeError("Selected image could not be decoded.")
         self.img_original = cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
 
         # Label indicating background correction
@@ -384,17 +431,36 @@ class LeafSeverityCalculator(toga.App):
         ROLLING_RADIUS = 101
         t0 = time.time()
 
-        image_rgb_small = cv2.resize(image_rgb_original, None, fx=RESIZE_FACTOR, fy=RESIZE_FACTOR, interpolation=cv2.INTER_AREA)
+        try:
+            image_rgb_original = self._ensure_rgb_uint8(image_rgb_original)
+            image_rgb_small = cv2.resize(
+                image_rgb_original,
+                None,
+                fx=RESIZE_FACTOR,
+                fy=RESIZE_FACTOR,
+                interpolation=cv2.INTER_AREA,
+            )
 
-        b, g, r = cv2.split(image_rgb_small)
-        _, b_background = subtract_background_rolling_ball(b, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
-        _, g_background = subtract_background_rolling_ball(g, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
-        _, r_background = subtract_background_rolling_ball(r, ROLLING_RADIUS, light_background=True, use_paraboloid=False, do_presmooth=False)
+            r = image_rgb_small[..., 0]
+            g = image_rgb_small[..., 1]
+            b = image_rgb_small[..., 2]
 
-        background_rgb_small = cv2.merge([b_background, g_background, r_background])
-        background_rgb_full = cv2.resize(background_rgb_small, (image_rgb_original.shape[1], image_rgb_original.shape[0]), interpolation=cv2.INTER_CUBIC)
-        image_corrected_rgb_full = cv2.subtract(background_rgb_full, image_rgb_original)
-        corrected = cv2.bitwise_not(image_corrected_rgb_full)
+            r_background = self._estimate_background_channel(r, ROLLING_RADIUS)
+            g_background = self._estimate_background_channel(g, ROLLING_RADIUS)
+            b_background = self._estimate_background_channel(b, ROLLING_RADIUS)
+
+            background_rgb_small = np.stack([r_background, g_background, b_background], axis=-1)
+            background_rgb_full = cv2.resize(
+                background_rgb_small,
+                (image_rgb_original.shape[1], image_rgb_original.shape[0]),
+                interpolation=cv2.INTER_CUBIC,
+            )
+            image_corrected_rgb_full = background_rgb_full.astype(np.int16) - image_rgb_original.astype(np.int16)
+            image_corrected_rgb_full = np.clip(image_corrected_rgb_full, 0, 255).astype(np.uint8)
+            corrected = 255 - image_corrected_rgb_full
+        except Exception as e:
+            print(f"Rolling-ball illumination correction fallback: {e}")
+            corrected = self._fallback_illumination_correction(np.array(image_rgb_original))
 
         elapsed = time.time() - t0
         return corrected, elapsed
