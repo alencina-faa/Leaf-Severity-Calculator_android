@@ -9,7 +9,7 @@ author = "Emiliano David, Alberto Lencina, Luisa Cabezas"
 author_email = "alencina@azul.faa.unicen.edu.ar"
 
 requires = [
-    "toga-core",
+    "toga-core==0.4.9",
 ]
 
 [tool.briefcase.app.leafseveritycalculator]
@@ -30,6 +30,7 @@ resources = ["resources"]
 
 sources = [
     "src/leafseveritycalculator",
+    "src/androidx",
 ]
 test_sources = [
     "tests",
