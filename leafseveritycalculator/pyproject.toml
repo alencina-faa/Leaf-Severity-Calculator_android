@@ -13,7 +13,7 @@ requires = [
 ]
 
 [tool.briefcase.app.leafseveritycalculator]
-formal_name = "Leaf Severity Calculator"
+formal_name = "Leaf Severity"
 description = "This app calculates the leaf severity from a photo or an image"
 long_description = """This application segments a photo or image of barley leaves pasted on 
 a white sheet of paper into: background (black), healthy leaf portion (green), and diseased 
