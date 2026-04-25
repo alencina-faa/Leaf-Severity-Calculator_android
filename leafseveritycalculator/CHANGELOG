@@ -1,5 +1,13 @@
 # LeafSeverityCalculator Release Notes
 
+## 0.0.9b1 (25 Apr 2026)
+
+* Documented branch processing split:
+	* `main`: `numpy-rolling-ball` and modern Android compatibility stack.
+	* `OpenCV-based`: `opencv-rolling-ball` + OpenCV I/O path with legacy Android compatibility stack.
+* Clarified that both branches preserve the same user workflow (illumination correction before severity, aspect-ratio-preserving resize, same threshold logic).
+* Clarified repository layout: root-level docs plus `leafseveritycalculator/README.rst` and `leafseveritycalculator/LICENSE` for Briefcase app packaging.
+
 ## 0.0.1 (04 Mar 2025)
 
 * Initial release

@@ -29,6 +29,28 @@ Cross-platform Android application for analyzing barley leaf disease severity. T
 
 **Choose this branch if**: You need to support older Android devices or require the proven stability of Python 3.8 + OpenCV 4.5.1 + NumPy 1.19.5 stack.
 
+## Branch Processing Notes (Main vs OpenCV-based)
+
+Both branches keep the same user-facing workflow:
+
+- Camera/gallery image selection
+- Illumination correction before severity calculation
+- Aspect-ratio-preserving resize (fit inside 800x600)
+- Threshold segmentation and severity display
+
+Implementation differs by branch:
+
+- **main**
+    - Illumination correction: `numpy-rolling-ball`
+    - Processing style: NumPy-first pipeline
+    - Android stack: newer API/memory requirements (cp312 ecosystem)
+- **OpenCV-based**
+    - Illumination correction: `opencv-rolling-ball` (`cv2_rolling_ball`)
+    - Processing style: OpenCV for decode/resize/encode + NumPy masks for severity math
+    - Android stack: legacy compatibility (cp38 wheels, older device support)
+
+This split is intentional and reflects compatibility/memory constraints between modern and legacy Android targets.
+
 ## Technology Stack
 
 | Component | Version | Source | Note |
@@ -73,6 +95,15 @@ leafseveritycalculator/
 ├── pyproject.toml                      # Project configuration + ABI-organized wheels
 └── CHANGELOG
 ```
+
+### Why there is a second README/LICENSE inside `leafseveritycalculator/`
+
+That folder is the **Briefcase app project root** (packaging root for Android builds). Keeping `README.rst` and `LICENSE` there is normal for BeeWare/Briefcase projects, while root-level docs are for repository-level information.
+
+- Root docs/files: repository documentation for contributors and GitHub
+- `leafseveritycalculator/README.rst` and `leafseveritycalculator/LICENSE`: app packaging metadata and project-local docs
+
+The duplication is acceptable and expected in this repo layout.
 
 ## Getting Started
 
