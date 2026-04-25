@@ -193,6 +193,11 @@ class LeafSeverityCalculator(toga.App):
 
                 except Exception as e:
                     print(f"Error in background correction: {e}")
+                    self.progress_label.text = "Illumination correction failed. Please retake the photo."
+                    self.severity_button.enabled = False
+                    await self.main_window.dialog(
+                        toga.InfoDialog("Error", "Illumination correction failed for this photo. Please retake it.")
+                    )
                 # Keep the original image if correction fails
                 finally:
                     self.processing = False
@@ -367,7 +372,11 @@ class LeafSeverityCalculator(toga.App):
                 
         except Exception as e:
             print(f"Error in background correction: {e}")
-            # Keep the original image if correction fails
+            self.progress_label.text = "Illumination correction failed. Please select another image."
+            self.severity_button.enabled = False
+            await self.main_window.dialog(
+                toga.InfoDialog("Error", "Illumination correction failed for this image. Please select another one.")
+            )
         finally:
             self.processing = False
 
