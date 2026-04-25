@@ -216,6 +216,10 @@ class LeafSeverityCalculator(toga.App):
         if self.img_original is None:
             await self.main_window.dialog(toga.InfoDialog("Warning", "Please capture or select an image first."))
             return
+        if self.processing:
+            return
+
+        self.progress_label.text = "Calculating severity..."
         self.processing = True
         try:
             final_result = await asyncio.get_event_loop().run_in_executor(None, self._process_image_detailed)
@@ -225,21 +229,19 @@ class LeafSeverityCalculator(toga.App):
                 self.result.image = toga.Image(processed_image)
                 self.severidad = severity
                 self.lbl_severidad.text = f"Severity: {self.severidad:.2%}"
+                self.progress_label.text = "Severity calculated"
                 self.severity_button.enabled = False
             else:
+                self.progress_label.text = "Severity calculation failed"
                 await self.main_window.dialog(toga.InfoDialog("Error", "Image processing returned no result."))
         except Exception as e:
+            self.progress_label.text = "Severity calculation failed"
             await self.main_window.dialog(toga.InfoDialog("Error", f"Error processing image: {str(e)}"))
         finally:
             self.processing = False
 
     def _process_image_detailed(self):
-        cache_key = hash(self.img_original.tobytes())
-        if cache_key in self.cache:
-            return self.cache[cache_key]
-        result = self._process_image_opencv()
-        self.cache[cache_key] = result
-        return result
+        return self._process_image_opencv()
 
     def _process_image_opencv(self):
         try:
