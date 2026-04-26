@@ -191,11 +191,11 @@ requires = [
 [tool.briefcase.app.leafseveritycalculator.android]
 requires = [
     "toga-android~=0.4.5",
-    "../wheels/numpy-1.26.2-0-cp312-cp312-android_21_arm64_v8a.whl",
-    "../wheels/numpy-1.26.2-0-cp312-cp312-android_21_x86_64.whl",
+    "../wheels/numpy-1.26.2-0-cp312-cp312-android_21_arm64_v8a.whl ; platform_machine == 'aarch64'",
+    "../wheels/numpy-1.26.2-0-cp312-cp312-android_21_x86_64.whl ; platform_machine == 'x86_64'",
     "../wheels/tatogalib-0.9.6-py3-none-any.whl",
-    "../wheels/pillow-11.0.0-0-cp312-cp312-android_24_arm64_v8a.whl",
-    "../wheels/pillow-11.0.0-0-cp312-cp312-android_24_x86_64.whl",
+    "../wheels/pillow-11.0.0-0-cp312-cp312-android_24_arm64_v8a.whl ; platform_machine == 'aarch64'",
+    "../wheels/pillow-11.0.0-0-cp312-cp312-android_24_x86_64.whl ; platform_machine == 'x86_64'",
     "numpy-rolling-ball>=1,<2",
 ]
 
@@ -237,11 +237,15 @@ android {
         }
     }
 }
+
+dependencies {
+    implementation "com.google.android.material:material:1.12.0"
+}
 """
 base_theme = "Theme.MaterialComponents.Light.DarkActionBar"
 
 build_gradle_dependencies = [
-    "com.google.android.material:material:1.11.0",
+    "com.google.android.material:material:1.12.0",
     # Needed for DetailedList
     # "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0",
     # Needed for MapView
