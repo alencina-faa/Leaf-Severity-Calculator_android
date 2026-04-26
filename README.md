@@ -6,6 +6,20 @@
 
 A cross-platform Android application that analyzes barley leaf images to calculate disease severity. The app segments leaves into background, healthy tissue (green), and diseased tissue (red), then computes the severity percentage.
 
+## App Screenshots
+
+### Main Flow
+
+![Screenshot 1](leafseveritycalculator/screenshots/image1.png)
+![Screenshot 2](leafseveritycalculator/screenshots/image2.png)
+![Screenshot 3](leafseveritycalculator/screenshots/image3.png)
+
+### Results and Actions
+
+![Screenshot 4](leafseveritycalculator/screenshots/image4.png)
+![Screenshot 5](leafseveritycalculator/screenshots/image5.png)
+![Functions](leafseveritycalculator/screenshots/funtions.png)
+
 ### Key Features
 
 - 📸 **Capture & Upload**: Take photos with device camera or select images from gallery
