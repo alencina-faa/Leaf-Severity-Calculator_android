@@ -8,16 +8,16 @@ Cross-platform Android application for analyzing barley leaf disease severity. T
 
 ## App Screenshots
 
-### Main Flow
+<p align="center">
+    <img src="leafseveritycalculator/screenshots/image1.png" alt="Screenshot 1" width="32%" />
+    <img src="leafseveritycalculator/screenshots/image2.png" alt="Screenshot 2" width="32%" />
+    <img src="leafseveritycalculator/screenshots/image3.png" alt="Screenshot 3" width="32%" />
+</p>
 
-<img src="leafseveritycalculator/screenshots/image1.png" alt="Screenshot 1" width="50%" />
-<img src="leafseveritycalculator/screenshots/image2.png" alt="Screenshot 2" width="50%" />
-<img src="leafseveritycalculator/screenshots/image3.png" alt="Screenshot 3" width="50%" />
-
-### Results and Actions
-
-<img src="leafseveritycalculator/screenshots/image4.png" alt="Screenshot 4" width="50%" />
-<img src="leafseveritycalculator/screenshots/image5.png" alt="Screenshot 5" width="50%" />
+<p align="center">
+    <img src="leafseveritycalculator/screenshots/image4.png" alt="Screenshot 4" width="32%" />
+    <img src="leafseveritycalculator/screenshots/image5.png" alt="Screenshot 5" width="32%" />
+</p>
 
 ### Key Features
 
