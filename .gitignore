@@ -73,4 +73,3 @@ logs/
 export_readme_pdf.bat
 export_readme_pdf.ps1
 render_readme_to_pdf.py
-README.pdf
