@@ -68,3 +68,9 @@ logs/
 /leafseveritycalculator/android/.gradle/
 /leafseveritycalculator/android/build/
 /leafseveritycalculator/install_run_log*.txt
+
+# README export to PDF (local tools)
+export_readme_pdf.bat
+export_readme_pdf.ps1
+render_readme_to_pdf.py
+README.pdf
