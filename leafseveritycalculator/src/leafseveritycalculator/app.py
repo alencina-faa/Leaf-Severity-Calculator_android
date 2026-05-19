@@ -2,7 +2,6 @@ import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW, BOTTOM, CENTER
 import asyncio
-from PIL import Image
 import os
 import time
 import sys
@@ -160,7 +159,7 @@ class LeafSeverityCalculator(toga.App):
             image = await self.camera.take_photo()
             if image:
                 self.photo.image = image
-                self.img_original = image.as_format(Image.Image)
+                self.img_original = self._to_rgb_array(image)
 
                 # Label indicating background correction
                 self.progress_label.text = "Correcting illumination..."
@@ -211,6 +210,32 @@ class LeafSeverityCalculator(toga.App):
             await self.main_window.dialog(toga.InfoDialog("Oh no!", "You have not granted permission to take photos"))
         except Exception as e:
             await self.main_window.dialog(toga.InfoDialog("Error", f"Failed to capture/process photo: {str(e)}"))
+
+    def _to_rgb_array(self, toga_image):
+        # Toga backends may expose camera/gallery images in different formats.
+        data = None
+
+        for fmt in ("PNG", "JPEG", "JPG"):
+            try:
+                maybe_bytes = toga_image.as_format(fmt)
+                if isinstance(maybe_bytes, (bytes, bytearray)) and len(maybe_bytes) > 0:
+                    data = bytes(maybe_bytes)
+                    break
+            except Exception:
+                continue
+
+        if data is None:
+            maybe_data = getattr(toga_image, "data", None)
+            if isinstance(maybe_data, (bytes, bytearray)) and len(maybe_data) > 0:
+                data = bytes(maybe_data)
+
+        if data is None:
+            raise RuntimeError("Captured image format is unsupported on this platform.")
+
+        img_array = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+        if img_array is None:
+            raise RuntimeError("Captured image could not be decoded.")
+        return cv2.cvtColor(img_array, cv2.COLOR_BGR2RGB)
 
     async def process_image(self, widget, **kwargs):
         if self.img_original is None:
@@ -318,18 +343,30 @@ class LeafSeverityCalculator(toga.App):
         if not urilist:
             return
 
+        if isinstance(urilist, str):
+            uris = [urilist]
+        elif isinstance(urilist, (list, tuple)):
+            uris = [u for u in urilist if isinstance(u, str) and u]
+        else:
+            uris = []
+
+        if not uris:
+            return
+
+        selected_uri = uris[0]
+
         bytesobj = None
         try:
             from tatogalib.uri_io.urifile import UriFile
-            urifile = UriFile(urilist[0])
+            urifile = UriFile(selected_uri)
             f = urifile.open("rb", "utf-8-sig", newline=None)
             try:
                 bytesobj = f.read()
             finally:
                 f.close()
         except Exception:
-            if sys.platform == "android" and urilist[0].startswith("content://"):
-                bytesobj = self._read_android_content_uri_bytes(urilist[0])
+            if sys.platform == "android" and selected_uri.startswith("content://"):
+                bytesobj = self._read_android_content_uri_bytes(selected_uri)
             else:
                 raise
         
