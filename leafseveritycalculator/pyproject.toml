@@ -2,7 +2,7 @@
 [tool.briefcase]
 project_name = "LeafSeverityCalculator"
 bundle = "ar.edu.unicen.faa"
-version = "0.0.10"
+version = "0.0.12"
 url = "https://faa.unicen.edu.ar/leafseveritycalculator"
 license = "GPL-3.0+"
 license-files = ["LICENSE"]
@@ -224,11 +224,11 @@ android {
 
             // Enables code shrinking, obfuscation, and optimization for only
             // your project's release build type.
-            minifyEnabled true
+//            minifyEnabled true
 
             // Enables resource shrinking, which is performed by the
             // Android Gradle plugin.
-            shrinkResources true
+//            shrinkResources true
 
             // Includes the default ProGuard rules files that are packaged with
             // the Android Gradle plugin. To learn more, go to the section about
@@ -238,9 +238,9 @@ android {
                     'proguard-rules.pro'
 
             // at android_gradle_app_build_intermediates_merged_native_libs_release_out_lib
-            ndk {
-                debugSymbolLevel 'FULL'
-            }
+//            ndk {
+//                debugSymbolLevel 'FULL'
+//            }
         }
     }
 }
